@@ -1,0 +1,45 @@
+{
+  "name": "typescript-node-project",
+  "version": "1.0.0",
+  "description": "Simple OpenAI client for request completion",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "start:debug": "tsx --inspect-brk src/index.ts",
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+  },
+  "keywords": [
+    "typescript",
+    "node",
+    "esm"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "@lancedb/lancedb": "^0.18.1",
+    "@langchain/core": "^0.3.42",
+    "apache-arrow": "^18.1.0",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.0.3",
+    "langchain": "^0.3.19",
+    "pdfjs-dist": "^4.10.38",
+    "turndown": "^7.2.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^18.15.11",
+    "@types/pdfjs-dist": "^2.10.377",
+    "@types/turndown": "^5.0.5",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.6",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

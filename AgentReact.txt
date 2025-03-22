@@ -1,0 +1,8 @@
+AgentReact
+
+question1 = "che temperatura fa nella città dove vivo?"
+
+
+
+---
+
