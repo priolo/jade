@@ -6,7 +6,9 @@ import { breakWords } from '../tools/cutter/utils.js';
 import fromPDFToText from '../tools/textualize/pdf.js';
 import { countWords, NodeDoc, nodesDocsBuild } from './utils/utils.js';
 import { vectorDBCreateAndStore } from "./utils/db.js";
-import { Document } from './mock.js';
+import { Document } from './mock/document.js';
+import { chapterDesc } from './mock/chapterDesc.js';
+import { chapterTxt } from './mock/chapterTxt.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,12 +18,13 @@ const __dirname = path.dirname(__filename);
 export async function storeInDb(relativePath:string, tableName:string) {
 
 	// FETCHING
-	// const absolutePath = path.resolve(__dirname, relativePath);
-	// const text = await fromPDFToText(absolutePath);
+	const absolutePath = path.resolve(__dirname, relativePath);
+	//const text = await fromPDFToText(absolutePath);
 	const text = Document
 
 	// CUTTING
-	const chaptersDesc = await textCutterChapter(text)
+	//const chaptersDesc = await textCutterChapter(text)
+	const chaptersDesc = chapterDesc
 	let chaptersTxt: string[] = breakWords(text, chaptersDesc.map(c => c.opening_words))
 
 	//raffino la spezzettatura se necessario

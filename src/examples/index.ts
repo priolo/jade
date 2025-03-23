@@ -8,7 +8,7 @@ import { storeInDb } from "./storeInDB.js"
 
 const TableName = "kb_general"
 
-storeInDb("../data/rome_guide.pdf", TableName)
+storeInDb("../../data/rome_guide.pdf", TableName)
 // storeInDb("../data/rome_guide2.pdf", TableName)
 // storeInDb("../data/legge_maltrattamento_animali.pdf", TableName)
 // storeInDb("../data/light.pdf", TableName)

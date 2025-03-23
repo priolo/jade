@@ -9,9 +9,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 // const blockDef2 = "chunks of text"
 const blockDef = "block of text"
 const blockDef2 = "blocks of text"
-const openingSentenceDef = "opening words"
-const documentDef = "document"
-const wordsNumDef = "5"
+//opening sentence
 
 
 export async function textCutterChapter(text: string): Promise<Chapter[]> {
@@ -25,6 +23,7 @@ export async function textCutterChapter(text: string): Promise<Chapter[]> {
 		},
 		systemInstruction: systemPrompt
 	})
+
 	const result = await llm.generateContent(text)
 	const resultTxt = result.response.text()
 	const resultJson = JSON.parse(resultTxt)
@@ -36,23 +35,19 @@ export type Chapter = {
 }
 
 const schema: Schema = {
-	description: `
-list of ${blockDef} sorted by their position in the ${documentDef}.
-`,
+	
 	type: SchemaType.ARRAY,
 	items: {
 		description: `
-A list of: ${openingSentenceDef} and title, describing each ${blockDef}
-- the list is in the same order as the position of the ${blockDef2} relative to the entire ${documentDef}.
-- each ${openingSentenceDef} indicates the exact start of each ${blockDef}.
-`,
+		list of ${blockDef2} ordered by their position in the document. In the list the order of the ${blockDef2} MUST BE THE SAME as they follow one another in the document
+		`,
 		type: SchemaType.OBJECT,
 		properties: {
 			opening_words: {
-				description: `
-It is a string containing the first ${wordsNumDef} initial ${openingSentenceDef} of the single ${blockDef}.
-- The ${wordsNumDef} words must be exactly the same sequence of words.
-- The words must be AT LEAST ${wordsNumDef}.
+description: `
+It is a string containing only the first 5 initial opening words of the single ${blockDef}.
+- The 5 words must be exactly the same sequence of words.
+- The words must be AT LEAST 5.
 For example in this ${blockDef}:
 "The Territorial Force was a part-time volunteer component of the British Army, created in 1908 to augment British land forces without resorting to conscription."
 The correct answer is
@@ -61,7 +56,9 @@ The correct answer is
 				type: SchemaType.STRING
 			},
 			title: {
-				description: `A short description of the ${blockDef}.`,
+				description: `
+A short description of the ${blockDef}.
+`,
 				type: SchemaType.STRING
 			}
 		},
@@ -70,13 +67,13 @@ The correct answer is
 }
 
 const systemPrompt = `
-Split the ${documentDef} into smaller ${blockDef2}.
+Split a document into smaller ${blockDef2}.
 These individual ${blockDef2} follow the following rules:
 - The meaning of the single ${blockDef} refers to a single specific topic. For example, a single character, place, concept, or event.
 - The length of the ${blockDef} MUST be less than 400 words
 - The ${blockDef} has more than 100 words.
 - A single ${blockDef} is understandable even on its own
-- A single ${blockDef} does not overlap with other ${blockDef2}
+- A single ${blockDef} does not overlap with other ${blockDef}
 - Without cuts in the middle of sentences
 `
 
