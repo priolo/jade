@@ -1,47 +1,6 @@
 import axios from 'axios';
 
-/**
- * Interface for DuckDuckGo search result
- */
-interface DuckDuckGoResult {
-	Abstract: string;
-	AbstractSource: string;
-	AbstractText: string;
-	AbstractURL: string;
-	Answer: string;
-	AnswerType: string;
-	Definition: string;
-	DefinitionSource: string;
-	DefinitionURL: string;
-	Entity: string;
-	Heading: string;
-	Image: string;
-	Infobox: any;
-	Redirect: string;
-	RelatedTopics: Array<{
-		FirstURL: string;
-		Icon: { Height: string; URL: string; Width: string };
-		Result: string;
-		Text: string;
-	}>;
-	Results: Array<{
-		FirstURL: string;
-		Icon: { Height: string; URL: string; Width: string };
-		Result: string;
-		Text: string;
-	}>;
-	Type: string;
-	meta: any;
-}
 
-/**
- * Simplified search result for returning to the user
- */
-interface SearchResult {
-	title: string;
-	url: string;
-	description: string;
-}
 
 /**
  * Search DuckDuckGo and return simplified results
@@ -138,3 +97,47 @@ async function main() {
 
 // Run the main function
 main();
+
+
+/**
+ * Simplified search result for returning to the user
+ */
+interface SearchResult {
+	title: string;
+	url: string;
+	description: string;
+}
+
+/**
+ * Interface for DuckDuckGo search result
+ */
+interface DuckDuckGoResult {
+	Abstract: string;
+	AbstractSource: string;
+	AbstractText: string;
+	AbstractURL: string;
+	Answer: string;
+	AnswerType: string;
+	Definition: string;
+	DefinitionSource: string;
+	DefinitionURL: string;
+	Entity: string;
+	Heading: string;
+	Image: string;
+	Infobox: any;
+	Redirect: string;
+	RelatedTopics: Array<{
+		FirstURL: string;
+		Icon: { Height: string; URL: string; Width: string };
+		Result: string;
+		Text: string;
+	}>;
+	Results: Array<{
+		FirstURL: string;
+		Icon: { Height: string; URL: string; Width: string };
+		Result: string;
+		Text: string;
+	}>;
+	Type: string;
+	meta: any;
+}

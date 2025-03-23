@@ -1,8 +1,10 @@
 import { ChatSession, FunctionCallingMode, FunctionDeclaration, GenerativeModel, GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import dotenv from 'dotenv';
+dotenv.config();
 
 
 
-const genAI = new GoogleGenerativeAI("AIzaSyBGaDP1hcY9uKuuRDGCxV_7OEqnCO8gVwM");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 type FunctionsSets = { [key: string]: (args: any) => Promise<string> }
 
@@ -14,9 +16,15 @@ export enum RESPONSE_TYPE {
 
 export interface Response {
 	text: string
-	type
+	type: RESPONSE_TYPE
 }
 
+/**
+ * ReAct agent that can solve problems by thinking step by step.
+ * The agent can use a set of tools and functions to reason and solve tasks.
+ * The agent can also interact with other agents to solve complex problems.
+ * Can ask info from the parent agent 
+ */
 class Agent {
 	constructor(
 		public name: string,
@@ -29,7 +37,7 @@ class Agent {
 		const subAgentsFnc = this.createSubAgentsFnc(agents)
 		const subAgentDec = this.createSubAgentsDec(agents)
 
-		this.functionsMap = { ...functionsMap, ...subAgentsFnc}
+		this.functionsMap = { ...functionsMap, ...subAgentsFnc }
 
 		this.llm = genAI.getGenerativeModel({
 			model: "gemini-2.0-flash",

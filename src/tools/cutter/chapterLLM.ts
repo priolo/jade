@@ -1,14 +1,9 @@
 import { GoogleGenerativeAI, Schema, SchemaType } from "@google/generative-ai";
-import fromPDFToText from "../textualize/pdf.js";
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import dotenv from 'dotenv';
+dotenv.config();
 
 
-
-const genAI = new GoogleGenerativeAI("AIzaSyBGaDP1hcY9uKuuRDGCxV_7OEqnCO8gVwM");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 export async function textCutterChapter(text: string): Promise<Chapter[]> {
 
@@ -29,13 +24,10 @@ export async function textCutterChapter(text: string): Promise<Chapter[]> {
 }
 
 export type Chapter = {
-	//title: string,
 	opening_words: string,
-	// end: string
 }
 
 const schema: Schema = {
-	//description: `list sorted by appearance of the first 5 initial words of the text blocks into which the document has been divided`,
 	description: `list sorted by the position of the text blocks into which the document has been divided`,
 	type: SchemaType.ARRAY,
 	items: {
@@ -63,7 +55,6 @@ The correct answer is
 	}
 }
 
-
 const systemPrompt = `
 Split a document into smaller blocks of text.
 These individual blocks of text follow the following rules:
@@ -73,30 +64,5 @@ These individual blocks of text follow the following rules:
 - A single block of text is understandable even on its own
 - A single block of text does not overlap with other blocks of text
 - Without cuts in the middle of sentences
-`;
+`
 
-// const systemPrompt = `
-// Split a text document into multiple chapters.
-// A single chapter follows the following rules:
-// - it is a portion of the total document
-// - if possible it has more than 50 words and less than 350 words
-// - refers to a single specific topic. For example, a single person, place, concept or event.
-// - a single chapter is understandable even on its own
-// - it does not overlap with other chapters
-// - without cuts in the middle of sentences
-// `;
-
-
-
-
-
-
-
-
-// async function run() {
-// 	const relativePath = "../../../data/legge_maltrattamento_animali.pdf"
-// 	const absolutePath = path.resolve(__dirname, relativePath);
-// 	const text = await fromPDFToText(absolutePath);
-// 	await textCutterChapter(text)
-// }
-//run()

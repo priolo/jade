@@ -1,18 +1,30 @@
 import { EmbedContentRequest, GenerativeModel, GoogleGenerativeAI, TaskType } from '@google/generative-ai';
+import dotenv from 'dotenv';
+dotenv.config()
 
 
 
-const API_KEY = "AIzaSyBGaDP1hcY9uKuuRDGCxV_7OEqnCO8gVwM";
-const genAI = new GoogleGenerativeAI(API_KEY)
-export let model: GenerativeModel = null
-export const EMBEDDING_LENGTH = 768
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+let model: GenerativeModel = null
 
-export async function setupEmbedding() {
+
+/** su un array di stringhe restituisce un blocco di embedding */
+export async function getEmbeddings(txt: string[]): Promise<number[][]> {
+	if (model === null) await setupEmbedding();
+	return embeddingsForStore(txt);
+}
+
+/** su una stringa restituisce un embedding */
+export async function getEmbedding(txt: string): Promise<number[]> {
+	if (model === null) await setupEmbedding();
+	return embeddingForQuery(txt);
+}
+
+async function setupEmbedding() {
 	model = genAI.getGenerativeModel({ model: "text-embedding-004" })
 }
 
-// Function to get embeddings from Gemini
-export async function embeddingsForStore(text: string[], title?: string): Promise<number[][]> {
+async function embeddingsForStore(text: string[], title?: string): Promise<number[][]> {
 	try {
 		const requests: EmbedContentRequest[] = text.map(t => ({
 			content: { role: "user", parts: [{ text: t }] },
@@ -23,7 +35,8 @@ export async function embeddingsForStore(text: string[], title?: string): Promis
 		let results = []
 		while (requests.length > 0) {
 			const batch = requests.splice(0, 99)
-			results.push(... (await model.batchEmbedContents({ requests: batch })).embeddings)
+			const embeddings = await model.batchEmbedContents({ requests: batch })
+			results.push(...embeddings.embeddings)
 		}
 		return results.map(e => e.values)
 	} catch (error) {
@@ -32,7 +45,7 @@ export async function embeddingsForStore(text: string[], title?: string): Promis
 	}
 }
 
-export async function embeddingForQuery(text: string): Promise<number[]> {
+async function embeddingForQuery(text: string): Promise<number[]> {
 	try {
 		const request: EmbedContentRequest = {
 			content: { role: "user", parts: [{ text }] },
@@ -46,3 +59,4 @@ export async function embeddingForQuery(text: string): Promise<number[]> {
 		throw error
 	}
 }
+

@@ -1,5 +1,5 @@
 import { FunctionDeclaration, SchemaType } from "@google/generative-ai";
-import Agent, { Response, RESPONSE_TYPE } from "./agent.js";
+import Agent, { Response, RESPONSE_TYPE } from "./Agent.js";
 import readline from 'readline'
 
 

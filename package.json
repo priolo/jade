@@ -1,11 +1,12 @@
 {
-  "name": "typescript-node-project",
-  "version": "1.0.0",
+  "name": "jade",
+  "version": "0.0.1",
   "description": "Simple OpenAI client for request completion",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
+    "start:exm": "tsx src/examples/index.ts",
     "start:debug": "tsx --inspect-brk src/index.ts",
     "dev": "tsx --watch src/index.ts",
     "build": "tsc",

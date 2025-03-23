@@ -28,9 +28,9 @@ interface GoogleSearchResponse {
 async function fetchGoogleSearchDescriptions(query: string, numResults: number = 5): Promise<GoogleSearchItem[]> {
 	try {
 		// You need to create a Custom Search Engine and get API key from Google Cloud Console
-		const apiKey = 'AIzaSyBf3j29SckTCltObc-uiwZtCuYZNU_drr8';
+		const apiKey = process.env.GOOGLE_API_KEY
 		// This is your Custom Search Engine ID
-		const cseId = 'f77b81cbe6bc843f1';
+		const cseId = process.env.GOOGLE_CSE_ID
 
 		if (!apiKey) {
 			throw new Error('GOOGLE_API_KEY not found in environment variables');

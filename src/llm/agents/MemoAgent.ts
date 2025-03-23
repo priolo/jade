@@ -1,4 +1,4 @@
-import Agent from "../agent.js";
+import Agent from "../Agent.js";
 
 const personalAgent = new Agent(
 	"MEMO",
