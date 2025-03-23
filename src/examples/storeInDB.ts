@@ -19,12 +19,12 @@ export async function storeInDb(relativePath:string, tableName:string) {
 
 	// FETCHING
 	const absolutePath = path.resolve(__dirname, relativePath);
-	//const text = await fromPDFToText(absolutePath);
-	const text = Document
+	const text = await fromPDFToText(absolutePath);
+	//const text = Document
 
 	// CUTTING
-	//const chaptersDesc = await textCutterChapter(text)
-	const chaptersDesc = chapterDesc
+	const chaptersDesc = await textCutterChapter(text)
+	//const chaptersDesc = chapterDesc
 	let chaptersTxt: string[] = breakWords(text, chaptersDesc.map(c => c.opening_words))
 
 	//raffino la spezzettatura se necessario

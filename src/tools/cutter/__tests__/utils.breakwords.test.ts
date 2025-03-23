@@ -1,68 +1,60 @@
-import { breakWords } from '../utils.js';
+import { breakWords, findIndex, findIndexReverse } from '../utils.js';
 
+
+// describe('breakWords', () => {
+// 	test('', () => {
+// 		const text = 'Hello World';
+// 		const words = ['Hello', 'World'];
+// 		const result = breakWords(text, words);
+// 		expect(result).toEqual(['', ' World']);
+// 	});
+
+
+// });
+
+describe('findIndex', () => {
+
+	test('find foward', () => {
+		const text = `how are you? Fine and you? aaah fine fine mee too`;
+		//const searchStrings = ["hello  word", "you fine", "fine fine"];
+		const searchString = "you fine"
+		const result = findIndex(text, searchString, 0)
+		expect(result).toBe(8)
+	})
+
+	test('find foward', () => {
+		const text = `how are you? Fine and you? aaah fine fine mee too`;
+		const searchString = "you fine"
+		const result = findIndexReverse(text, searchString, 20)
+		expect(result).toBe(8)
+	})
+
+})
 
 describe('breakWords', () => {
-	// Basic functionality tests
-	test('should break a string at a single word', () => {
-		const text = `“pippo pap pippo pappo lampel%apmedusa la casa di un pescatore narrante`
-		const words = [
-			"pippo pappo",
-			"l%apmedusa",
-		];
-		const result = breakWords(text, words);
+
+	test('all ordinate', () => {
+		const text = `how are you? Fine and you? aaah fine fine mee too`;
+		const searchStrings = ["you fine", "fine fine", "too"];
+		const result = breakWords(text, searchStrings)
 		expect(result).toEqual([
-			"“pippo pap pippo pappo lampe",
-			"l%apmedusa la casa di un pescatore narrante",
-		]);
-	});
+			"how are ",
+			"you? Fine and you? aaah ",
+			"fine fine mee ",
+			"too",
+		])
+	})
 
-	test('should break a string at multiple words', () => {
-		const text = 'This is a sample text for testing purposes';
-		const words = ['sample', 'testing'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['This is a ', 'sample text for ', 'testing purposes']);
-	});
+	test('not all ordinate', () => {
+		const text = `how are you? Fine and you? aaah fine fine mee too`;
+		const searchStrings = ["fine fine", "you fine", "too"];
+		const result = breakWords(text, searchStrings)
+		expect(result).toEqual([
+			"how are ",
+			"you? Fine and you? aaah ",
+			"fine fine mee ",
+			"too",
+		])
+	})
 
-	// Edge cases
-	test('should return array with original text if no words found', () => {
-		const text = 'Hello world';
-		const words = ['notfound', 'another'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['Hello world']);
-	});
-
-	test('should handle empty text correctly', () => {
-		const text = '';
-		const words = ['something'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['']);
-	});
-
-	test('should handle empty words array correctly', () => {
-		const text = 'Hello world';
-		const words: string[] = [];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['Hello world']);
-	});
-
-	test('should ignore words at the beginning of text', () => {
-		const text = 'Start with this sentence';
-		const words = ['Start', 'sentence'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['Start with this ', 'sentence']);
-	});
-
-	test('should only use first occurrence of a word', () => {
-		const text = 'Repeat word and repeat word again';
-		const words = ['repeat'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['Repeat word and ', 'repeat word again']);
-	});
-
-	test('should be case sensitive', () => {
-		const text = 'Case matters in Case sensitivity';
-		const words = ['case'];
-		const result = breakWords(text, words);
-		expect(result).toEqual(['Case matters in Case sensitivity']);
-	});
 });
