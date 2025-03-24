@@ -101,7 +101,7 @@ export function findIndexReverse(text: string, searchString: string, start: numb
 			}
 		}
 		if (searchIndex == 0) {
-			return firstIndex - (length + 1)
+			return i//firstIndex - (length + 1)
 		}
 	}
 	return -1

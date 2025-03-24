@@ -60,5 +60,3 @@ export async function storeInDb(relativePath:string, tableName:string) {
 	// CONNECT/CREATE VECTOR DB
 	vectorDBCreateAndStore([...chapters, ...paragraps], tableName)
 }
-
-
