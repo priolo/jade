@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { textCutterChapter } from '../tools/cutter/chapterLLM.js';
+import { textCutterChapter } from '../tools/cutter/llm.js';
 import { split } from '../tools/cutter/fix.js';
 import { breakWords } from '../tools/cutter/utils.js';
 import fromPDFToText from '../tools/textualize/pdf.js';
@@ -9,6 +9,7 @@ import { vectorDBCreateAndStore } from "./utils/db.js";
 import { Document } from './mock/document.js';
 import { chapterDesc } from './mock/chapterDesc.js';
 import { chapterTxt } from './mock/chapterTxt.js';
+import { getEmbeddings } from '../tools/embedding/embeddingGemini.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,10 +18,12 @@ const __dirname = path.dirname(__filename);
 
 export async function storeInDb(relativePath:string, tableName:string) {
 
-	// FETCHING
-	const absolutePath = path.resolve(__dirname, relativePath);
-	const text = await fromPDFToText(absolutePath);
-	//const text = Document
+	// FETCHING DOCUMENT
+	//const absolutePath = path.resolve(__dirname, relativePath);
+	//const text = await fromPDFToText(absolutePath);
+	const text = Document
+
+	
 
 	// CUTTING
 	const chaptersDesc = await textCutterChapter(text)
@@ -46,9 +49,10 @@ export async function storeInDb(relativePath:string, tableName:string) {
 	}
 	chaptersTxt = refinedChaptersTxt
 
+
+
 	// SPLITTING CHAPTERS
 	const chapters = await nodesDocsBuild(chaptersTxt, null, relativePath)
-
 	// SPLITTING PARAGRAPHS
 	const paragraps: NodeDoc[] = []
 	for (const chapter of chapters) {
@@ -57,6 +61,16 @@ export async function storeInDb(relativePath:string, tableName:string) {
 		paragraps.push(...paragrap)
 	}
 
+
+
+	// EMBEDDING
+	const allDocs = [...chapters, ...paragraps];
+	(await getEmbeddings(allDocs.map(doc => doc.text))).forEach((vector, i) => {
+		allDocs[i].vector = vector
+	})
+
+
+
 	// CONNECT/CREATE VECTOR DB
-	vectorDBCreateAndStore([...chapters, ...paragraps], tableName)
+	vectorDBCreateAndStore(allDocs, tableName)
 }

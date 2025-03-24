@@ -1,4 +1,5 @@
 data/
+vectorsDB/
 
 # Dependencies
 node_modules/

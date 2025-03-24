@@ -1,6 +1,3 @@
-import { getEmbeddings } from "../../tools/embedding/embeddingGemini.js";
-
-
 
 export function uuidv4() {
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -23,13 +20,12 @@ export function countWords(sentence: string): number {
 }
 
 export async function nodesDocsBuild(sentences: string[], parentId?: string, ref?: string): Promise<NodeDoc[]> {
-	const vectors = await getEmbeddings(sentences)
-	const nodes: NodeDoc[] = vectors.map((vector, i) => ({
+	const nodes: NodeDoc[] = sentences.map((sentence, i) => ({
 		uuid: uuidv4(),
 		parent: parentId,
-		text: sentences[i],
+		text: sentence,
 		ref: ref ?? "",
-		vector
+		vector: null,
 	}))
 	return nodes
 }
@@ -43,8 +39,3 @@ export type NodeDoc = {
 	_distance?: number
 	paragraphs?: NodeDoc[]
 }
-
-
-
-
-

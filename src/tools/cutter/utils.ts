@@ -1,8 +1,6 @@
-
-
 export function breakWords(text: string, words: string[]): string[] {
 
-	const indexesFind = []
+	const indexesFind:number[] = []
 
 	for (let i = 0; i < words.length; i++) {
 		const word = words[i]
@@ -24,10 +22,9 @@ export function breakWords(text: string, words: string[]): string[] {
 		i--
 	}
 
-	console.log(indexesFind)
-
+	indexesFind.sort((a,b) => a-b)
 	let count = 0
-	return indexesFind.map( index => {
+	return indexesFind.map(index => {
 		const chunk = text.slice(count, index)
 		count = index
 		return chunk
@@ -46,14 +43,10 @@ export function breakWords(text: string, words: string[]): string[] {
 	// return pieces
 }
 
-export function findIndex(text: string, searchString: string, start: number): number {
-
+function findIndex(text: string, searchString: string, start: number): number {
 	const search = searchString.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
 	text = text.toLowerCase()
-
-	// numero di caratteri uguali
 	let searchIndex = 0
-	/// la prima occorrernza in cui i caratteri sono uguali
 	let firstIndex = -1
 
 	for (let i = start; i < text.length; i++) {
@@ -76,15 +69,11 @@ export function findIndex(text: string, searchString: string, start: number): nu
 	return -1
 }
 
-export function findIndexReverse(text: string, searchString: string, start: number): number {
-
+function findIndexReverse(text: string, searchString: string, start: number): number {
 	const search = searchString.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 	text = text.toLowerCase()
-
 	const length = search.length
-	// numero di caratteri uguali
 	let searchIndex = length
-	/// la prima occorrernza in cui i caratteri sono uguali
 	let firstIndex = -1
 
 	for (let i = start; i > 0; i--) {
@@ -101,12 +90,11 @@ export function findIndexReverse(text: string, searchString: string, start: numb
 			}
 		}
 		if (searchIndex == 0) {
-			return i//firstIndex - (length + 1)
+			return i
 		}
 	}
 	return -1
 }
-
 
 function isAlphanumeric(char: string) {
 	return /^[A-Za-z0-9]$/.test(char);
