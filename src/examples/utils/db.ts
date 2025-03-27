@@ -1,7 +1,7 @@
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
 import { getEmbedding } from "../../tools/embedding/embeddingGemini.js";
-import { NodeDoc } from "./utils.js";
+import { NodeDoc } from "../types.js";
 
 
 

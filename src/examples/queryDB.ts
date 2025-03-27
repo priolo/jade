@@ -1,4 +1,4 @@
-import { NodeDoc } from "./utils/utils.js"
+import { NodeDoc } from "./types.js"
 import { getItemById, vectorDBSearch } from "./utils/db.js"
 
 

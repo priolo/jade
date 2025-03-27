@@ -96,6 +96,6 @@ const pdfPaths = [
 // queryDB("quando non è reato?", TableName)
 // queryDB("research on design", TableName)
 
-chat(TableName)
+//chat(TableName)
 
 

@@ -19,23 +19,4 @@ export function countWords(sentence: string): number {
 	return sentence.trim().split(/\s+/).length;
 }
 
-export async function nodesDocsBuild(sentences: string[], parentId?: string, ref?: string): Promise<NodeDoc[]> {
-	const nodes: NodeDoc[] = sentences.map((sentence, i) => ({
-		uuid: uuidv4(),
-		parent: parentId,
-		text: sentence,
-		ref: ref ?? "",
-		vector: null,
-	}))
-	return nodes
-}
 
-export type NodeDoc = {
-	uuid?: string
-	parent?: string
-	text: string,
-	ref?: string
-	vector: number[]
-	_distance?: number
-	paragraphs?: NodeDoc[]
-}
