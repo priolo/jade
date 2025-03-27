@@ -9,7 +9,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 // const blockDef2 = "chunks of text"
 const blockDef = "block of text"
 const blockDef2 = "blocks of text"
-const openingSentenceDef = "opening words"
+const openingDef = "opening words"
 const documentDef = "document"
 const wordsNumDef = "5"
 
@@ -17,7 +17,7 @@ const wordsNumDef = "5"
 export async function textCutterChapter(text: string): Promise<Chapter[]> {
 
 	const llm = genAI.getGenerativeModel({
-		model: "gemini-2.0-flash",
+		model: "gemini-2.5-pro-exp-03-25",
 		generationConfig: {
 			responseMimeType: "application/json",
 			responseSchema: schema,
@@ -37,25 +37,25 @@ export type Chapter = {
 
 const schema: Schema = {
 	description: `
-list of ${blockDef} sorted by their position in the ${documentDef}.
+List of ${blockDef} sorted by their position in the ${documentDef}.
 `,
 	type: SchemaType.ARRAY,
 	items: {
 		description: `
-A list of: ${openingSentenceDef} and title, describing each ${blockDef}
-- the list is in the same order as the position of the ${blockDef2} relative to the entire ${documentDef}.
-- each ${openingSentenceDef} indicates the exact start of each ${blockDef}.
+A list of: ${openingDef} and titles, describing each ${blockDef}
+- The list is in the same order as the position of the ${blockDef2} relative to the entire ${documentDef}.
+- Eeach ${openingDef} indicates the exact start of each ${blockDef}.
 `,
 		type: SchemaType.OBJECT,
 		properties: {
 			opening_words: {
 				description: `
-It is a string containing the first ${wordsNumDef} initial ${openingSentenceDef} of the single ${blockDef}.
+It is a string containing the first ${wordsNumDef} initial ${openingDef} of the single ${blockDef}.
 - The ${wordsNumDef} words must be exactly the same sequence of words.
 - The words must be AT LEAST ${wordsNumDef}.
 For example in this ${blockDef}:
 "The Territorial Force was a part-time volunteer component of the British Army, created in 1908 to augment British land forces without resorting to conscription."
-The correct answer is
+The correct answer is:
 "The Territorial Force was a"
 `,
 				type: SchemaType.STRING

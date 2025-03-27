@@ -1,110 +1,112 @@
 # MultilevelRAG
 
-## PREMESSA
+## PREMISE
 
-Ottimizzazione per il recupero testo per la RAG.  
-Spezzare un intero documento o in maniera regolare ha i seguenti svantaggi:  
-- non permette di incorporare tutta la semantica del contesto perche' il taglio puo' avvenire potenzialmente in qualunque punto  
-- contesti troppo lunghi non permettono un recupero efficace con dei vettori di discreta dimensione  
+Simply breaking an entire document into regular CHUNKs has some disadvantages:
+- It does not allow you to incorporate all the semantics of the context because the cut can potentially occur at any point
+- If the information is integrated into a longer context, you lose information
 
-Presento questa tecnica che ho usato un mio progetto ed ha funzionato piuttosto bene.  
-Probabilmente è stata già implementata (e sicuramente anche meglio di come ho fatto io).  
-Se è così fatemelo sapere!  
+In fact, for very structured topics it is preferable to use GraphRAG, which remains the best solution even if it is more complex to implement.
+So I implemented this technique that I used in my project and it worked pretty well.
+It has probably already been implemented (and certainly even better than what I did).
 
-[progetto sandbox](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FrunChat.ts%3A3%2C1)
+[sandbox project](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FrunChat.ts%3A3%2C1)
 
-> LO SO è typescript e non python! Perche' sono abituato a usare typescript! 
-> Ma il codice è cosi' semplice che si può tradurre ad occhio.  
-> Comunque il grosso del lavoro sono state le descrizioni dello `schema`.
+> I KNOW it's typescript and not python! I'm used to using typescript!
+> The code is very simple and can be translated by eye.
+> However, the bulk of the work was the descriptions of the `llm`.
 
-Se lo scarichi lo puoi eseguire mettendo la tua API_KEY google gemini in .env
-e mandando in esecuzione  
-`npm run storeDB`  
-oppure  
-`npm run chat`  
-oppure esegui il `launch.json` sul file selezionato.   
-Se sei pazzo puoi anche fare un FORK mettere la tua API_KEY nell'.env ed eseguire direttamente in sandbox online.
+If you download it, you can run it by putting your google gemini `API_KEY` in `.env`
+The demo processes a text (a tourist manual for Rome) and inserts it into the VECTOR DB:
+`npm run storeDB`
 
-## SOLUZIONE
+Then you can chat to get information:
+`npm run chat`
 
-### MEMORIZZARE un DOCUMENTO  
-L'idea è di chiedere ad un LLM di spezzare il DOCUMENTO in CAPITOLI semanticamente coereti.  
-Questi CAPITOLI sono divisi a loro volta in BLOCCHI di testo (chunk) con le classiche tecniche di splitting.  
-I BLOCCHI mantengono un riferimento al CAPITOLO da cui provengono.  
-E in fine i BLOCCHI sono embedding e memorizzati nel database vettoriale.  
+Or put a breakpoint and debug the selected file with the `launch.json`.
+
+If you are crazy, you can also FORK by putting your API_KEY in the `.env` and run directly in the online sandbox.
+
+## SOLUTION
+
+### STORE the DOCUMENT on multiple levels
+The idea is to ask an LLM to break the DOCUMENT into semantically coherent CHAPTERS.
+These CHAPTERS are in turn divided into text BLOCKS (chunks) with the classic splitting techniques.
+The BLOCKS maintain a reference to the CHAPTER from which they come.
+And, finally, the BLOCKS are embedding and stored in the VECTOR DB (lancedb).
 
 ![Multilevel RAG Document Storage Structure](fig1.png)
 
-### RECUPERO tramite QUERY
-Per recuperare i CAPITOLI collegati ad una QUERY genero il vettore embedding della QUERY.  
-Con questo interrogo il VECTOR DB (lancedb) e ricavo un array di BLOCCHI di testo (memorizzati precedentemente) semanticamente simili alla QUERY .  
-Ogni BLOCCO di testo ha il riferimento al CAPITOLO da cui è stato generato quindi recupero i CAPITOLI pertinenti.  
+### RECOVERY via QUERY
+When I receive a QUERY I generate its embedding vector.
+I use the VECTOR DB and obtain an array of text BLOCKS (those previously stored) semantically similar to the QUERY.
+Each text BLOCK has a reference to the CHAPTER from which it was generated so I recover the relevant CHAPTERS.
 
-## CREAZIONE KB
+This allows you to recover an entire portion of text semantically consistent with the QUERY therefore useful for the RAG.
 
-Ok quindi ho un DOCUMENTO e voglio ficcarlo dentro un VECTOR DB come fare?  
-Guarda questo [file](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FstoreInDB.ts%3A14%2C20)
+## KB CREATION
 
-In pratica passo il DOCUMENTO all'LLM che lo divide in CAPITOLI [qui](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fcutter%2Fllm.ts%3A17%2C23-17%2C40).  
-Questa operazione è eseguita del LLM quindi puo' essere abbastanza "pesante": Va fatta con qualche trucco.
+Ok I have a DOCUMENT and I want to put it into a VECTOR DB, how do I do it?
+Look at this [code](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FstoreInDB.ts%3A14%2C20)
 
-> FUN FACT:  
-> Se date ad un LLM (gemini-2.0-flash) un documento molto lungo e gli chiedete di restituirvi i CAPITOLI   
-> potrebbe metterci molto molto tempo per completare l'operazione  
-> o darvi un errore (a me lo dava)  
-> perche' deve ri-generare tutti i token del documento stesso!  
+I basically pass the DOCUMENT to the LLM and he decides how to divide it into CHAPTERS [here](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fcutter%2Fllm.ts%3A17%2C23-17%2C40).
+This operation is performed on many tokens (the whole document) so it can be "heavy": It must be done with a single interaction and a few tricks.
 
-L'idea è di farsi restituire dell'LLM solo i riferimenti di dove inizia ogni singolo CAPITOLO
-Questo permette di ridurre al massimo la lunghezza della risposta e di velocizzarla moltissimo.
+> FUN FACT:
+> If you give an LLM (gemini-2.0-flash) a very long document and ask it to return the CHAPTERS
+> it could take a very long time to complete the operation
+> or give you an error (it gave me one) because it has to re-generate all the tokens of the document itself!
 
-> FUN FACT:  
-> Se chiedete ad un LLM di darvi una posizione numerica   
-> per esempio: il numero di caratteri dall'inizio del documento dopo i quali inizia un CAPITOLO... sicuramente sbaglierà!  
-> Come sapete un LLM non riesce a contare i caratteri correttamente dato che utilizza i TOKENS.  
- 
-Il trucco è di farsi dare le prime X prole dell'inizio del CAPITOLO.  
-Questo lo fa "abbastanza" bene.   
+The idea is to have the LLM return only the references of where each single CHAPTER begins
+This allows to reduce the length of the response to a minimum and therefore speed it up a lot.
 
-> FUN FACT:  
-> Se chiedete, anche minacciando, ad un LLM di restituire una lista ordinata in una certa maniera a volte la mette in ordine a volte quasi.    
- 
-Ho dovuto implementare una sistema per essere sicuro di recuperare il giusto capitolo [qui](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fcutter%2Futils.ts%3A1%2C17-1%2C27)
+> FUN FACT:
+> If you ask an LLM to give you a numerical position
+> for example: the number of characters from the beginning of the document after which a CHAPTER begins... it will surely get it wrong!
+> As you know an LLM cannot count the characters correctly since it uses TOKENS.
 
-Quindi ora abbiamo i CAPITOLI poi è tutto molto semplice:
-- spezzo il CAPITOLO in BLOCCHI di testo mantenendo il riferiemnto al CAPITOLO
-- ottengo l'embedding dei BLOCCHI di testo
-- memorizzo nel VECTOR DB
+The trick is to get the first X words of the beginning of the CHAPTER.
+This does it "pretty" well.
 
-> FUN FACT:  
-> se volete migliorare molto le performance dell'EMBEDDING optate sempre per chiamate API in batch.  
-> GEMINI genera 100 EMBEDDING al massimo per chiamata API  
-> [qui](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Futils%2FembeddingGemini.ts%3A27%2C1-27%2C89).
+> FUN FACT:
+> If you ask, even with threats, an LLM to return a list ordered in a certain way, sometimes he puts it in order, sometimes "almost".
 
- 
+I had to implement a system to make sure I get the right chapter [here](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fcutter%2Futils.ts%3A1%2C17-1%2C27)
+
+So now LLM has created the CHAPTER indexes and we have extracted them from the DOCUMENT
+Then it's all very simple:
+- I break the CHAPTER into text BLOCKS keeping the reference to the CHAPTER
+- I get the embedding of the text BLOCKS
+- I store in the VECTOR DB
+[code](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FstoreInDB.ts%3A44%2C2-60%2C4)
+
+> FUN FACT:
+> if you want to improve much the performance of the EMBEDDING always opt for batch API calls.
+> GEMINI generates 100 EMBEDDING at most per API call
+> [here](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Futils%2FembeddingGemini.ts%3A27%2C1-46%2C2)
 
 ## CHAT
 
-Per avviare la CHAT puoi eseguire  
-`npm run chat`  
-o lancicare il file `runChat.ts`  
-Si tratta di un AGENT ReAct con un TOOL per interrogare il VECTOR DB [qui](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fchat.ts%3A8%2C1)  
-L'implementazione della classe base "Agent" merita un discorso a parte.
+To start the CHAT you can run
+`npm run chat`
+or launch the file `runChat.ts`
+It is a ReAct AGENT with a TOOL to query the VECTOR DB [here](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2Fchat.ts%3A8%2C1)
+The implementation of the base class "Agent" deserves a separate discussion.
 
-Il recupero dal DB avviene [qui](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FqueryDB.ts%3A6%2C23-6%2C30). Cioè:
-- Interrogo il VECTOR DB per similitudine semantica tramite l'EMBEDDING della QUERY
-- Recupero una lista di BLOCCHI di testo (o anche direttamente CAPITOLI eventualmente)
-- Di questi BLOCCHI di testo recupero i CAPITOLI e gli assegno la distanza del BLOCCO "migliore"
-- Quindi ottengo una lista di CAPITOLI ordinata per "distanza semantica" dalla QUERY
-- Arricchisco il prompt con i CAPITOLI trovati (metto i primi due ma potrebbe essere anche tre!)
+The retrieval from the DB takes place [here](https://codesandbox.io/p/devbox/embedding-d3x34d?file=%2Fsrc%2FqueryDB.ts%3A6%2C23-6%2C30). That is:
+- I query the VECTOR DB for semantic similarity through the EMBEDDING of the QUERY
+- I retrieve a list of text BLOCKS (or even directly CHAPTERS if necessary)
+- Of these text BLOCKS I retrieve the CHAPTERS and assign them the distance of the "best" BLOCK
+- Then I obtain a list of CHAPTERS ordered by "semantic distance" from the QUERY
+- I enrich the prompt with the CHAPTERS found (I put the first two but it could also be three!)
 
+## WHAT ELSE COULD BE DONE
 
-## COS'ALTRO SI POTREBBE FARE
+There are, in my opinion, at least two important optimizations:
 
-Ci sono, secodno me, almeno due importanti ottimizzazzioni
+- When LLM splits the document into chapters it should also create an index or summary.
+This would allow the agent to understand what the entire document is about.
+Otherwise, when asked "what can I do in Rome?" (in the demo I used the text of a tourist guide for Rome) he should theoretically download all the knowledge.
 
-- Quando LLM taglia il documento in capitoli dovrebbe creare anche un indice o riassunto.
-  Questo permetterebbe di far capire all'agente di cosa parla l'intero documento.
-  Altrimenti alla domanda "cosa posso fare a Roma?" (in demo ho usato il testo di una guida turistica per Roma) lui dovrebbe scaricare teoricamente tutta la conoscenza.
-
-- Bisognerebbe creare un sotto-agente che gestisce le query al database vettoriale al posto dell'agente-leader
-  Questo permetterebbe di gestre la richiesta senza appesantire la finestra dell'agente-leader
+- A sub-agent should be created to handle queries to the vector database instead of the leader agent
+This would allow the request to be handled without cluttering the leader agent's window
