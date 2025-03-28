@@ -1,5 +1,5 @@
 import readline from 'readline';
-import { buildLeadAgent } from "./agents/lead.js";
+import { buildLeadAgent } from "./agents/leader.js";
 
 
 

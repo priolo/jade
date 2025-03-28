@@ -1,4 +1,5 @@
 import { ChatSession, FunctionCallingMode, FunctionDeclaration, GenerativeModel, GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { tool } from "@langchain/core/tools";
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -34,13 +35,16 @@ class Agent {
 		agents: Agent[] = [],
 		systemPrompt: string = reactSystemPrompt,
 	) {
+		if (!tools) tools = []
+		if (!functionsMap) functionsMap = {}
+		if (!agents) agents = []
 		const subAgentsFnc = this.createSubAgentsFnc(agents)
 		const subAgentDec = this.createSubAgentsDec(agents)
 
 		this.functionsMap = { ...functionsMap, ...subAgentsFnc }
 
 		this.llm = genAI.getGenerativeModel({
-			model: "gemini-2.5-pro-exp-03-25",
+			model: "gemini-2.0-flash",
 			tools: [
 				{
 					functionDeclarations: [...tools, ...subAgentDec, finalAnswerStruct, askInformationStruct]

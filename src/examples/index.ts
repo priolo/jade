@@ -16,7 +16,7 @@ const TableName = "kb_pizza"
 
 
 
-storeInDb("../../data/pizza/Codice Galattico/Codice Galattico.pdf", TableName)
+//storeInDb("../../data/pizza/Codice Galattico/Codice Galattico.pdf", TableName)
 
 
 
@@ -96,6 +96,6 @@ const pdfPaths = [
 // queryDB("quando non è reato?", TableName)
 // queryDB("research on design", TableName)
 
-//chat(TableName)
-
+//chat()
+queryDB("Cioccorane", "kb_pizza")
 
