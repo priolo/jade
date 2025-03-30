@@ -17,3 +17,11 @@
   - inserire dei mock nei tool
 - setup account
   - store API-KEYS
+
+
+
+AGENT (CO-REACT)
+- è possibile lanciare un agente in maniera asincrona
+- distruggere tutti i sottoagenti quando finisce un task
+- i subagents possono essere giudicati per le loro risposte. assegnare un punteggio
+- 

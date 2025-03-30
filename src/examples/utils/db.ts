@@ -1,6 +1,6 @@
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
-import { getEmbedding } from "../../tools/embedding/embeddingGemini.js";
+import { getEmbedding } from "../../tools/embedding/embedding.js";
 import { NodeDoc } from "../types.js";
 
 
@@ -36,7 +36,13 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 	}
 
 	// ADD ITEMS
-	await table.add(nodes);
+	await table.add(nodes.map(node => ({
+		uuid: node.uuid,
+		parent: node.parent,
+		text: node.text,
+		ref: node.ref,
+		vector: node.vector,
+	})));
 }
 
 export async function vectorDBSearch(text: string, tableName: string) {

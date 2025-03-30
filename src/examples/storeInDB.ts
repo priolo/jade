@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { split } from '../tools/cutter/fix.js';
 import { textCutterChapter } from '../tools/cutter/llm.js';
 import { breakWords } from '../tools/cutter/utils.js';
-import { getEmbeddings } from '../tools/embedding/embeddingGemini.js';
+import { getEmbeddings } from '../tools/embedding/embedding.js';
 import fromHTMLToText from '../tools/textualize/html.js';
 import fromPDFToText from '../tools/textualize/pdf.js';
 import { vectorDBCreateAndStore } from "./utils/db.js";
