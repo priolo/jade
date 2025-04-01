@@ -82,7 +82,7 @@ class Agent {
 		this.history.push({ role: "user", content: prompt })
 
 		// LOOP
-		for (let i = 0; i < 10; i++) {
+		for (let i = 0; i < 50; i++) {
 
 			// THINK
 			const r = await generateText({
@@ -91,8 +91,9 @@ class Agent {
 				system: reactSystemPrompt,
 				messages: this.history,
 				//toolChoice: !this.parent? "auto": "required",
+				//toolChoice: this.history.length > 2 && !!this.parent ? "auto" : "required",
 				toolChoice: "required",
-				
+
 				tools,
 				maxSteps: 1,
 			})
@@ -127,7 +128,8 @@ class Agent {
 
 				// CONTINUE RAESONING
 				if (!functionName.startsWith("chat_with_")) {
-					console.log(`${this.name}:function:${functionName}: ${result}`)
+					console.log(`${this.name}:function:${functionName}:`, this.history[this.history.length - 2].content[1].args)
+					console.log(result)
 				}
 
 				// CONTINUE RAESONING
@@ -158,23 +160,26 @@ class Agent {
 
 export default Agent
 
+const toolDef = "tool" // "function"
+const toolDef2 = "tools" // "functions"
+
 // System instructions for ReAct agent
 const reactSystemPrompt = `
 You are a ReAct agent that solves problems by thinking step by step.
 Follow this process:
 1. Thought: Analyze the problem and think about how to solve it
-2. Action: Choose an action from the available functions
-3. Ask information: If you don't have enough information call the "ask_for_information" function
-3. Observation: Receive the result of the action
+2. Action: Choose an action from the available ${toolDef2}
+3. Ask information: If you don't have enough information call the "ask_for_information" ${toolDef}
+3. Observation: Get the result of the ${toolDef} and use it to process the answer
 4. Repeat steps 1-3 until you can provide a final answer
-5. When ready, use the "final_answer" function to provide your solution
+5. When ready, use the "final_answer" ${toolDef} to provide your solution
 
 Always be explicit in your reasoning. Break down complex problems into steps.
 `;
 
 // Task instruction template
 const reactTaskPrompt = `
-Please solve the following problem using reasoning and the available tools:
+Please solve the following problem using reasoning and the available ${toolDef2}:
 `;
 
 const systemTool = {

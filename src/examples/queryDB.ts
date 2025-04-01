@@ -3,9 +3,9 @@ import { getItemById, vectorDBSearch } from "./utils/db.js"
 
 
 
-export async function queryDB(query: string, tableName:string) {
+export async function queryDB(query: string, tableName:string, ref?:string) {
 
-	let results = await vectorDBSearch(query, tableName)
+	let results = await vectorDBSearch(query, tableName, ref)
 
 	results = results.map<NodeDoc>(item => ({ ...item, _distance: item._distance, paragraphs: [] }))
 
@@ -27,12 +27,6 @@ export async function queryDB(query: string, tableName:string) {
 		chapter._distance = Math.min(chapter._distance, paragraph._distance)
 	}
 	chapters = chapters.sort((a, b) => a._distance - b._distance)
-
-	// PRINT
-	// for (const chapter of chapters) {
-	// 	console.log("-------------------------------")
-	// 	console.log(chapter?.text ?? "<void>")
-	// }
 
 	return chapters
 }

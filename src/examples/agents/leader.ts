@@ -1,10 +1,7 @@
-import { SchemaType } from "@google/generative-ai"
 import Agent from "../../llm/Agent.js"
-import { NodeDoc } from "../types.js"
-import { queryDB } from "../queryDB.js"
 import { buildCodiceAgent } from "./codice.js"
-import { buildMenuAgent } from "./menu.js"
 import { buildManualeAgent } from "./manuale.js"
+import { buildMenuAgent } from "./menu.js"
 
 
 
@@ -22,7 +19,6 @@ export function buildLeadAgent() {
 - chat_with MENU ti permette di chiedere informazioni sul menu dei ristoranti (piatti, preparazioni etc etc).
 - chat_with MANUALE ti permette di chiedere informazioni sul manuale di cucina (ricette, procedimenti etc etc).
 `,
-		null,
 		null,
 		[codiceAgent, manualeAgent, menuAgent]
 	)

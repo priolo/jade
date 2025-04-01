@@ -10,6 +10,8 @@ import fromPDFToText from '../tools/textualize/pdf.js';
 import { vectorDBCreateAndStore } from "./utils/db.js";
 import { countWords, uuidv4 } from './utils/utils.js';
 import { NodeDoc } from "./types.js";
+import { ChapterStruct } from '../tools/cutter/types.js';
+import { chapterTxt } from './mock/chapterTxt.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,51 +46,30 @@ export async function storeInDb(relativePath: string, tableName: string) {
 export async function storeTextInDb(text: string, tableName: string, ref?: string) {
 
 	// CUTTING
-	let chaptersDesc = await textCutterChapter(text)
-	//const chaptersDesc = chapterDesc
-	const chaptersTxt: string[] = breakWords(text, chaptersDesc.map(c => c.opening_words))
+	const chaptersDescStart = await textCutterChapter(text)	
+	const chaptersTxt: string[] = breakWords(text, chaptersDescStart.map(c => c.opening_words))
+	const chaptersDesc = chaptersTxt.map((c, i) => ({
+		text: c,
+	}))
 	// [OPTIONAL] merge CHARAPTER with lower words count
-	for (let i = 0; i < chaptersDesc.length; i++) {
-		const chapterDesc = chaptersDesc[i]
-		chapterDesc.text = (chapterDesc.text ?? "") + chaptersTxt[i]
-		const wordsNum = countWords(chapterDesc.text)
-		if (wordsNum < 10) {
-			const chapterDescNext = chaptersDesc[i + 1]
-			if (!chapterDescNext) continue
-			chapterDescNext.text = chapterDesc.text
-			chapterDesc.text = null
-		}
-	}
-	chaptersDesc = chaptersDesc.filter(c => !!c.text)
-
-
-
-	// //raffino la spezzettatura se necessario
-	// const refinedChaptersTxt: string[] = []
-	// let carryOver: string = ""
-	// for (let i = 0; i < chaptersTxt.length; i++) {
-	// 	const text = carryOver + chaptersTxt[i]
-	// 	carryOver = ""
-	// 	const wordsNum = countWords(text)
-	// 	if (wordsNum > 800) {
-	// 		const splittedDesc = await textCutterChapter(text)
-	// 		const splittedTxt = breakWords(text, splittedDesc.map(c => c.opening_words))
-	// 		refinedChaptersTxt.push(...splittedTxt)
-	// 	} else if (wordsNum < 10) {
-	// 		carryOver = text
-	// 	} else {
-	// 		refinedChaptersTxt.push(text)
+	// for (let i = 0; i < chaptersDesc.length; i++) {
+	// 	const chapterDesc = chaptersDesc[i]
+	// 	chapterDesc.text = (chapterDesc.text ?? "") + chaptersTxt[i]
+	// 	const wordsNum = countWords(chapterDesc.text)
+	// 	if (wordsNum < 10) {
+	// 		const chapterDescNext = chaptersDesc[i + 1]
+	// 		if (!chapterDescNext) continue
+	// 		chapterDescNext.text = chapterDesc.text
+	// 		chapterDesc.text = null
 	// 	}
 	// }
-	// chaptersTxt = refinedChaptersTxt
-
-
+	// chaptersDesc = chaptersDesc.filter(c => !!c.text)
 
 	// CREATE CHAPTERS DOCS
 	const chaptersDoc: NodeDoc[] = chaptersDesc.map(c => ({
 		uuid: uuidv4(),
 		parent: null,
-		title: c.title,
+		//title: c.title,
 		text: c.text,
 		ref,
 		vector: null,
@@ -114,9 +95,10 @@ export async function storeTextInDb(text: string, tableName: string, ref?: strin
 	// EMBEDDING
 	const allDocs = [...chaptersDoc, ...paragrapsDoc]
 	const txtEmbedding = allDocs.map(doc => {
-		const txt = !!doc.title 
-			? `${doc.title} : ${doc.text}`
-			: `${doc.text}`
+		// const txt = !!doc.title 
+		// 	? `${doc.title} : ${doc.text}`
+		// 	: `${doc.text}`
+		const txt = doc.text
 		return txt
 	})
 	const vectors = await getEmbeddings(txtEmbedding)
@@ -126,4 +108,6 @@ export async function storeTextInDb(text: string, tableName: string, ref?: strin
 
 	// CONNECT/CREATE VECTOR DB
 	vectorDBCreateAndStore(allDocs, tableName)
+
+	console.log(`Stored ${ref ?? "--"} in ${allDocs.length} documents in ${tableName} table`)
 }

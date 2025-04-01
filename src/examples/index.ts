@@ -1,17 +1,13 @@
-import { chat } from "./chat.js"
-import { queryDB } from "./queryDB.js"
-import { normalizeString, importPDFToText, storeInDb, storeTextInDb, importHTMLToText } from "./storeInDB.js"
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import fromPDFToText from '../tools/textualize/pdf.js';
-import Agent from "../llm/Agent.js";
-import { tool } from "ai";
-import { z } from "zod"
+import { cosineSimilarity,  tool } from "ai";
 import readline from 'readline';
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { z } from "zod";
+import Agent from "../llm/Agent.js";
+import { chat } from "./chat.js";
+import { storeInDb } from "./storeInDB.js";
+import { queryDB } from "./queryDB.js";
+import { deleteRecordsByRefSubstring, getAllByRefSubstring } from "./utils/db.js";
+import { split } from "../tools/cutter/fix.js";
+import { getEmbedding } from "../tools/embedding/embedding.js";
 
 
 
@@ -19,18 +15,24 @@ const __dirname = path.dirname(__filename);
 const TableName = "kb_pizza"
 
 
-
-
 //storeInDb("../../data/pizza/Codice Galattico/Codice Galattico.pdf", TableName)
+//storeInDb("../../data/pizza/Menu/Essenza dell Infinito.pdf", TableName)
+//storeInDb("../../data/pizza/Menu/Le Stelle che Ballano.pdf", TableName)
 
+//queryDB("Latte+", "kb_pizza", "Essenza dell Infinito")
+//queryDB("Latte+", "kb_pizza")
+//queryDB("piatti che contengono Latte+", "kb_pizza")
+//queryDB("Latte+", "kb_pizza")
+//queryDB("Carne di Drago", "kb_pizza")
 
+//getAllByRefSubstring("dell Infinito", "kb_pizza")
 
 
 const pdfPaths = [
 	"Anima Cosmica",
 	"Armonia Universale",
 	"Cosmica Essenza",
-	"Datapizza",
+	//"Datapizza",
 	"Eco di Pandora",
 	"Eredita Galattica",
 	"Essenza dell Infinito",
@@ -40,7 +42,7 @@ const pdfPaths = [
 	"L Equilibrio Quantico",
 	"L Essenza Cosmica",
 	"L Essenza del Multiverso su Pandora",
-	"L Essenza delle Dune",
+	//"L Essenza delle Dune",
 	"L Essenza di Asgard",
 	"L Etere del Gusto",
 	"L infinito in un Boccone",
@@ -61,9 +63,10 @@ const pdfPaths = [
 // async function importMenuPDFs() {
 // 	for (const pdfPath of pdfPaths) {
 // 		await storeInDb(`../../data/pizza/Menu/${pdfPath}.pdf`, TableName)
+// 		await new Promise(resolve => setTimeout(resolve, 10000)) // Delay to avoid rate limit
 // 	}
 // }
-//importMenuPDFs()
+// importMenuPDFs()
 
 
 // async function importManualPDFs() {
@@ -84,16 +87,10 @@ const pdfPaths = [
 
 
 
-
-
-
-
-
-
-
 //storeInDb("../../data/rome_guide2.pdf", TableName)
 //storeInDb("../../data/legge_maltrattamento_animali.pdf", TableName)
 //storeInDb("../../data/light.pdf", TableName)
+
 
 //queryDB("typical recipes", TableName)
 // queryDB("Kitchen vampire", TableName)
@@ -101,12 +98,24 @@ const pdfPaths = [
 // queryDB("quando non è reato?", TableName)
 // queryDB("research on design", TableName)
 
-//chat()
-queryDB("Cioccorane", "kb_pizza")
+//queryDB("cioccorane", "kb_pizza")
+
+//queryDB("Essenza di Tachioni", "kb_pizza")
+
+
+chat()
+
+
+//deleteRecordsByRefSubstring("Essenza delle Dune", "kb_pizza")
+//deleteRecordsByRefSubstring("Datapizza", "kb_pizza")
+//deleteRecordsByRefSubstring("Essenza dell Infinito", "kb_pizza")
+
+
+
 
 async function agentRun() {
 	const mathAgent = new Agent(
-		"MATH", 
+		"MATH",
 		"Sei un agente esperto matematico che conversa su operazioni aritmetiche.",
 		{
 			add: tool({
@@ -133,7 +142,7 @@ async function agentRun() {
 	)
 
 	const chimicaAgent = new Agent(
-		"CHIMICA", 
+		"CHIMICA",
 		"Sei un agente esperto di molecole, reazioni, atomi, elettroni, protoni, neutroni cioè quello che riguarda la chimica.",
 		{
 			num_electrons_by_element_name: tool({
@@ -149,7 +158,7 @@ async function agentRun() {
 	)
 
 	const leaderAgent = new Agent(
-		"LEADER", 
+		"LEADER",
 		"Sei un agente che risponde direttamente all'utente e per rispondere può interrogare i suoi agenti tool.",
 		null,
 		[mathAgent, chimicaAgent]
@@ -170,5 +179,19 @@ async function agentRun() {
 		console.log(response)
 	}
 }
-
 //agentRun()
+
+
+// getAllByRefSubstring("Essenza dell Infinito", "kb_pizza").then(async (db) => {
+
+// 	const vector = await getEmbedding("latte+");
+
+// 	const results = db.map((item) => ({
+// 		document: item,
+// 		similarity: cosineSimilarity(vector, item.vector),
+// 	}))
+// 		.sort((a, b) => b.similarity - a.similarity)
+// 		.slice(0, 5)
+
+// 	console.log(results)
+// })

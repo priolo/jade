@@ -1,10 +1,10 @@
 export function breakWords(text: string, words: string[]): string[] {
 
-	const indexesFind:number[] = []
+	const indexesFind: number[] = []
 
 	for (let i = 0; i < words.length; i++) {
 		const word = words[i]
-		const start = indexesFind[indexesFind.length - 1] ?? 0
+		const start = indexesFind.length > 0 ? indexesFind[indexesFind.length - 1] + 1 : 0
 		let index = findIndex(text, word, start)
 		if (index != -1) {
 			indexesFind.push(index)
@@ -22,13 +22,16 @@ export function breakWords(text: string, words: string[]): string[] {
 		i--
 	}
 
-	indexesFind.sort((a,b) => a-b)
-	let count = 0
-	return indexesFind.map(index => {
+	indexesFind.sort((a, b) => a - b)
+	let count = indexesFind[0] ?? 0
+	const pieces: string[] = []
+	for (let i = 1; i < indexesFind.length; i++) {
+		const index = indexesFind[i]
 		const chunk = text.slice(count, index)
 		count = index
-		return chunk
-	}).concat(text.slice(count))
+		pieces.push(chunk)
+	}
+	pieces.push(text.slice(count))
 
 	// const pieces = words.reduce((acc, word) => {
 	// 	let index = findIndex(text.toLowerCase(), word)
@@ -40,10 +43,11 @@ export function breakWords(text: string, words: string[]): string[] {
 	// }, [])
 
 	// pieces.push(text)
-	// return pieces
+	return pieces
 }
 
 function findIndex(text: string, searchString: string, start: number): number {
+	if (start == 6430) debugger
 	const search = searchString.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
 	text = text.toLowerCase()
 	let searchIndex = 0

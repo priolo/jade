@@ -3,9 +3,9 @@ import * as arrow from "apache-arrow";
 import { getEmbedding } from "../../tools/embedding/embedding.js";
 import { NodeDoc } from "../types.js";
 
-
-
 const dbPath = "./vectorsDB/lancedb";
+
+const VECTOR_DIM = 1024 //384 //768; // Dimension of the embedding vector
 
 export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string) {
 	const db = await lancedb.connect(dbPath);
@@ -25,7 +25,7 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 			new arrow.Field("parent", new arrow.Utf8(), true), // Set nullable to true
 			new arrow.Field("text", new arrow.Utf8()),
 			new arrow.Field("ref", new arrow.Utf8(), true),
-			new arrow.Field("vector", new arrow.FixedSizeList(768, new arrow.Field("item", new arrow.Float32()))),
+			new arrow.Field("vector", new arrow.FixedSizeList(VECTOR_DIM, new arrow.Field("item", new arrow.Float32()))),
 		]);
 		table = await db.createEmptyTable(
 			tableName,
@@ -45,11 +45,13 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 	})));
 }
 
-export async function vectorDBSearch(text: string, tableName: string) {
+export async function vectorDBSearch(text: string, tableName: string, ref?: string) {
 	const db = await lancedb.connect(dbPath);
 	const table = await db.openTable(tableName);
 	const vector = await getEmbedding(text);
-	const results: NodeDoc[] = await table.search(vector).limit(15).toArray();
+	const results: NodeDoc[] = !!ref
+		? await table.search(vector).where(`ref LIKE '%${ref}%'`).limit(15).toArray()
+		: await table.search(vector).limit(15).toArray()
 	return results;
 }
 
@@ -84,3 +86,41 @@ export async function getItemById(uuid: string, tableName: string): Promise<Node
 		return null;
 	}
 }
+
+export async function deleteRecordsByRefSubstring(substring: string, tableName: string): Promise<void> {
+	try {
+		const db = await lancedb.connect(dbPath);
+		const table = await db.openTable(tableName);
+
+		// Delete records where ref contains the substring
+		const deleteOperation = await table.delete(`ref LIKE '%${substring}%'`);
+
+		console.log(`Deleted ${deleteOperation} records containing '${substring}' in ref`);
+
+	} catch (error) {
+		console.error("Error deleting records by ref substring:", error);
+	}
+}
+
+export async function getAllByRefSubstring(ref: string, tableName: string): Promise<NodeDoc[]> {
+	try {
+		const db = await lancedb.connect(dbPath);
+		const table = await db.openTable(tableName);
+		const docs: NodeDoc[] = (
+			await table.query()
+				//.where(`ref LIKE '%${ref}%'`)
+				.toArray()
+		).map((item) => ({
+			uuid: item.uuid,
+			parent: item.parent,
+			text: item.text,
+			ref: item.ref,
+			vector: item.vector.toArray(),
+		}))
+		return docs
+	} catch (error) {
+		console.error("Error retrieving all uuids:", error);
+		return [];
+	}
+}
+
