@@ -1,32 +1,47 @@
-import { cosineSimilarity,  tool } from "ai";
+import { cosineSimilarity, tool } from "ai";
 import readline from 'readline';
 import { z } from "zod";
 import Agent from "../llm/Agent.js";
 import { chat } from "./chat.js";
-import { storeInDb } from "./storeInDB.js";
-import { queryDB } from "./queryDB.js";
-import { deleteRecordsByRefSubstring, getAllByRefSubstring } from "./utils/db.js";
+import { importHTMLToText, importPDFToText, normalizeString, storeInDb, storeTextInDb } from "./storeInDB.js";
+import { queryDBChapter } from "./queryDB.js";
+import { deleteRecordsByRefSubstring, getAllByRefSubstring, vectorDBSearch, wordDBSearch } from "./utils/db.js";
 import { split } from "../tools/cutter/fix.js";
 import { getEmbedding } from "../tools/embedding/embedding.js";
-
+import * as lancedb from "@lancedb/lancedb";
 
 
 
 const TableName = "kb_pizza"
 
 
-//storeInDb("../../data/pizza/Codice Galattico/Codice Galattico.pdf", TableName)
-//storeInDb("../../data/pizza/Menu/Essenza dell Infinito.pdf", TableName)
-//storeInDb("../../data/pizza/Menu/Le Stelle che Ballano.pdf", TableName)
 
-//queryDB("Latte+", "kb_pizza", "Essenza dell Infinito")
-//queryDB("Latte+", "kb_pizza")
-//queryDB("piatti che contengono Latte+", "kb_pizza")
-//queryDB("Latte+", "kb_pizza")
-//queryDB("Carne di Drago", "kb_pizza")
+//queryDBChapter("Latte+", "kb_pizza", "Essenza dell Infinito")
+//queryDBChapter("Latte+", "kb_pizza")
+//queryDBChapter("Ravioli al Vaporeon", "kb_pizza")
+//queryDBChapter("Chocobo Wings", "kb_pizza")
+//queryDBChapter("Latte+", "kb_pizza")
+
+// vectorDBSearch("Latte+", TableName).then((results) => {
+// 	console.log(results)
+// })
 
 //getAllByRefSubstring("dell Infinito", "kb_pizza")
 
+// wordDBSearch("Chocobo Wings", TableName).then((results) => {
+// 	console.log(results)
+// })
+
+
+
+
+
+
+
+
+//storeInDb("../../data/pizza/Codice Galattico/Codice Galattico.pdf", TableName)
+//storeInDb("../../data/pizza/Menu/Essenza dell Infinito.pdf", TableName)
+//storeInDb("../../data/pizza/Menu/Le Stelle che Ballano.pdf", TableName)
 
 const pdfPaths = [
 	"Anima Cosmica",
@@ -87,23 +102,26 @@ const pdfPaths = [
 
 
 
+
+
 //storeInDb("../../data/rome_guide2.pdf", TableName)
 //storeInDb("../../data/legge_maltrattamento_animali.pdf", TableName)
 //storeInDb("../../data/light.pdf", TableName)
 
 
-//queryDB("typical recipes", TableName)
-// queryDB("Kitchen vampire", TableName)
-// queryDB("where can i eat?", TableName)
-// queryDB("quando non è reato?", TableName)
-// queryDB("research on design", TableName)
 
-//queryDB("cioccorane", "kb_pizza")
+//chat()
 
-//queryDB("Essenza di Tachioni", "kb_pizza")
+// async function createindex() {
+// 	const db = await lancedb.connect("./vectorsDB/lancedb");
+// 	const table = await db.openTable("kb_pizza");
+// 	await table.createIndex("text", {
+// 		config: lancedb.Index.fts(),
+// 	});
+// }
+// createindex()
 
 
-chat()
 
 
 //deleteRecordsByRefSubstring("Essenza delle Dune", "kb_pizza")
@@ -182,7 +200,7 @@ async function agentRun() {
 //agentRun()
 
 
-// getAllByRefSubstring("Essenza dell Infinito", "kb_pizza").then(async (db) => {
+// getAllByRefSubstring("Manuale di Cucina", "kb_pizza").then(async (db) => {
 
 // 	const vector = await getEmbedding("latte+");
 
@@ -195,3 +213,4 @@ async function agentRun() {
 
 // 	console.log(results)
 // })
+

@@ -12,7 +12,7 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 
 	// Check if table exists before creating it
 	const tableExists = (await db.tableNames()).includes(tableName);
-	let table;
+	let table: lancedb.Table
 
 	if (tableExists) {
 		// Use existing table
@@ -32,7 +32,11 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 			schema,
 			{ existOk: true }
 		);
-		await table.createIndex("uuid");
+		await table.createIndex("uuid")
+		await table.createIndex("text", {
+			config: lancedb.Index.fts(),
+		});
+
 	}
 
 	// ADD ITEMS
@@ -50,10 +54,45 @@ export async function vectorDBSearch(text: string, tableName: string, ref?: stri
 	const table = await db.openTable(tableName);
 	const vector = await getEmbedding(text);
 	const results: NodeDoc[] = !!ref
-		? await table.search(vector).where(`ref LIKE '%${ref}%'`).limit(15).toArray()
-		: await table.search(vector).limit(15).toArray()
-	return results;
+		? await table.search(vector)
+			.where(`ref LIKE '%${ref}%'`)
+			.limit(100)
+			.toArray()
+		: await (table.search(vector) as lancedb.VectorQuery)
+			.distanceType("cosine")
+			//.distanceRange(0, 1)
+			.limit(20)
+			.toArray()
+	return results.map((item) => ({...item, vector: [...item.vector]}))
 }
+
+
+export async function wordDBSearch(word: string, tableName: string): Promise<NodeDoc[]> {
+	try {
+		const db = await lancedb.connect(dbPath)
+		const table = await db.openTable(tableName)
+
+		const docs: NodeDoc[] = (await table.query()
+			.nearestToText(word, ["text"])
+			.limit(50)
+			.toArray()).map((item) => ({...item, vector: [...item.vector]}))
+
+		// const docs: NodeDoc[] = (
+		// 	await table.query()
+		// 		//.fullTextSearch(word, { columns: "text"})
+		// 		.where(`LOWER(text) LIKE LOWER('%${word}%')`)
+		// 		.toArray()
+		// ).map((item) => ({...item, vector: [...item.vector]}))
+
+		return docs
+	} catch (error) {
+		console.error("Error: ", error);
+		return [];
+	}
+}
+
+
+
 
 export async function getAllUuid(tableName: string): Promise<string[]> {
 	try {
@@ -108,7 +147,7 @@ export async function getAllByRefSubstring(ref: string, tableName: string): Prom
 		const table = await db.openTable(tableName);
 		const docs: NodeDoc[] = (
 			await table.query()
-				//.where(`ref LIKE '%${ref}%'`)
+				.where(`LOWER(ref) LIKE LOWER('%${ref}%')`)
 				.toArray()
 		).map((item) => ({
 			uuid: item.uuid,

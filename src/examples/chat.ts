@@ -16,6 +16,8 @@ export async function chat() {
 		}
 		const response = await leadAgent.ask(prompt)
 		console.log(response)
+
+		await new Promise(resolve => setTimeout(resolve, 5000)) // wait 1 second
 	}
 }
 

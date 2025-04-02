@@ -3,11 +3,11 @@ import { getItemById, vectorDBSearch } from "./utils/db.js"
 
 
 
-export async function queryDB(query: string, tableName:string, ref?:string) {
+export async function queryDBChapter(query: string, tableName:string, ref?:string) {
 
 	let results = await vectorDBSearch(query, tableName, ref)
 
-	results = results.map<NodeDoc>(item => ({ ...item, _distance: item._distance, paragraphs: [] }))
+	results = results.map<NodeDoc>(item => ({ ...item, paragraphs: [] }))
 
 	// CANDIDATE CHAPTERS
 	let chapters = results.filter(item => item.parent == null)

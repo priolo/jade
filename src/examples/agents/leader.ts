@@ -15,9 +15,9 @@ export function buildLeadAgent() {
 		"LEADER",
 		`Sei un Agente che risponde a domande su un mondo immaginario fantascientifico.
 - Se ti servono informazioni specifiche o non sai rispondere alla domanda usa chat_with per poter chiedere ai tuoi sotto agenti e ricevere informazioni utili.
-- chat_with CODICE ti permette di chiedere informazioni sul Codice Galattico (norme, leggi, abitudini, etc etc).
+- chat_with CODICE ti permette di chiedere informazioni sul Codice Galattico (licenze, definizioni, ingredienti, regolamenti, norme, leggi, abitudini, etc etc).
 - chat_with MENU ti permette di chiedere informazioni sul menu dei ristoranti (piatti, preparazioni etc etc).
-- chat_with MANUALE ti permette di chiedere informazioni sul manuale di cucina (ricette, procedimenti etc etc).
+- chat_with MANUALE ti permette di chiedere informazioni sul manuale di cucina di  Sirius Cosmo (licenze, ricette, abilità, livelli, procedimenti con vantaggi e svantaggi, etc etc).
 `,
 		null,
 		[codiceAgent, manualeAgent, menuAgent]

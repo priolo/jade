@@ -1,7 +1,7 @@
 import { SchemaType } from "@google/generative-ai"
 import Agent from "../../llm/Agent.js"
 import { NodeDoc } from "../types.js"
-import { queryDB } from "../queryDB.js"
+import { queryDBChapter } from "../queryDB.js"
 
 export function buildLeadAgent() {
 	const leadAgent = new Agent(
@@ -28,7 +28,7 @@ export function buildLeadAgent() {
 		],
 		{
 			"search": async ({ query }): Promise<string> => {
-				const results: NodeDoc[] = (await queryDB(query, "kb_pizza")).slice(0, 3)
+				const results: NodeDoc[] = (await queryDBChapter(query, "kb_pizza")).slice(0, 3)
 				if (results.length == 0) return "Nessun risultato"
 
 				let response = ""

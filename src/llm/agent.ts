@@ -21,6 +21,13 @@ export interface Response {
 	type: RESPONSE_TYPE
 }
 
+export interface AgentOptions {
+	descriptionPrompt?: string
+	tools?: ToolSet
+	agents?: Agent[]
+}
+
+
 /**
  * Co-ReAct agent that can solve problems by thinking step by step.
  * The agent can use a set of tools and functions to reason and solve tasks.
@@ -29,7 +36,9 @@ export interface Response {
  */
 class Agent {
 	constructor(
-		public name: string,
+		public name: string, 
+		//options:AgentOptions?
+
 		public descriptionPrompt: string = "",
 		tools: ToolSet = {},
 		agents: Agent[] = [],

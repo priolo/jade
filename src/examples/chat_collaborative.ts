@@ -2,7 +2,7 @@ import { SchemaType } from "@google/generative-ai"
 import Agent from "../llm/Agent.js"
 import { NodeDoc } from "./types.js";
 import readline from 'readline';
-import { queryDB } from "./queryDB.js";
+import { queryDBChapter } from "./queryDB.js";
 
 
 
@@ -29,7 +29,7 @@ export async function chat(tableName: string) {
 		],
 		{
 			"search": async ({ query }): Promise<string> => {
-				const results: NodeDoc[] = await (await queryDB(query, tableName)).slice(0, 3)
+				const results: NodeDoc[] = await (await queryDBChapter(query, tableName)).slice(0, 3)
 				if (results.length == 0) {
 					return "No results"
 				}
