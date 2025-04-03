@@ -1,6 +1,6 @@
 import { SchemaType } from "@google/generative-ai"
 import Agent from "../llm/Agent.js"
-import { NodeDoc } from "./types.js";
+import { NodeDoc } from "../types.js";
 import readline from 'readline';
 import { queryDBChapter } from "./queryDB.js";
 

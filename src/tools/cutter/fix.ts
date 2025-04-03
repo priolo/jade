@@ -1,5 +1,8 @@
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
+
+
+
 // [II] impostare che se uno split è troppo piccolo lo si accorpa a quello precedente
 export async function split(text: string, minChunkSize: number = 50): Promise<string[]> {
 	const textSplitter = new RecursiveCharacterTextSplitter({

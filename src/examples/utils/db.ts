@@ -1,11 +1,12 @@
 import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
 import { getEmbedding } from "../../tools/embedding/embedding.js";
-import { NodeDoc } from "../types.js";
+import { DOC_TYPE, NodeDoc } from "../../types.js";
 
 const dbPath = "./vectorsDB/lancedb";
 
 const VECTOR_DIM = 1024 //384 //768; // Dimension of the embedding vector
+
 
 export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string) {
 	const db = await lancedb.connect(dbPath);
@@ -25,6 +26,7 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 			new arrow.Field("parent", new arrow.Utf8(), true), // Set nullable to true
 			new arrow.Field("text", new arrow.Utf8()),
 			new arrow.Field("ref", new arrow.Utf8(), true),
+			new arrow.Field("type", new arrow.Utf8(), true),
 			new arrow.Field("vector", new arrow.FixedSizeList(VECTOR_DIM, new arrow.Field("item", new arrow.Float32()))),
 		]);
 		table = await db.createEmptyTable(
@@ -40,42 +42,36 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 	}
 
 	// ADD ITEMS
-	await table.add(nodes.map(node => ({
-		uuid: node.uuid,
-		parent: node.parent,
-		text: node.text,
-		ref: node.ref,
-		vector: node.vector,
-	})));
+	await table.add(nodes)
 }
 
-export async function vectorDBSearch(text: string, tableName: string, ref?: string) {
+
+export async function vectorDBSearch(text: string, tableName: string, limit: number, type?:DOC_TYPE, refs?: string[]): Promise<NodeDoc[]> {
 	const db = await lancedb.connect(dbPath);
 	const table = await db.openTable(tableName);
 	const vector = await getEmbedding(text);
-	const results: NodeDoc[] = !!ref
-		? await table.search(vector)
-			.where(`ref LIKE '%${ref}%'`)
-			.limit(100)
-			.toArray()
-		: await (table.search(vector) as lancedb.VectorQuery)
-			.distanceType("cosine")
-			//.distanceRange(0, 1)
-			.limit(20)
-			.toArray()
-	return results.map((item) => ({...item, vector: [...item.vector]}))
+	const searchQuery = (table.search(vector) as lancedb.VectorQuery).distanceType("cosine")
+	if (!!refs && refs.length > 0) {
+		const whereClause = refs.map(r => `ref LIKE '%${r}%'`).join(" OR ")
+		searchQuery.where(whereClause)
+	}
+	if (!!type) {
+		searchQuery.where(`type = '${type}'`)
+	}
+	const results: NodeDoc[] = await searchQuery.limit(limit).toArray()
+	return results.map((item) => ({ ...item, vector: [...item.vector] }))
 }
 
 
-export async function wordDBSearch(word: string, tableName: string): Promise<NodeDoc[]> {
+export async function wordDBSearch(word: string, tableName: string, limit:number = 50): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath)
 		const table = await db.openTable(tableName)
 
 		const docs: NodeDoc[] = (await table.query()
 			.nearestToText(word, ["text"])
-			.limit(50)
-			.toArray()).map((item) => ({...item, vector: [...item.vector]}))
+			.limit(limit)
+			.toArray()).map((item) => ({ ...item, vector: [...item.vector] }))
 
 		// const docs: NodeDoc[] = (
 		// 	await table.query()
@@ -90,6 +86,24 @@ export async function wordDBSearch(word: string, tableName: string): Promise<Nod
 		return [];
 	}
 }
+
+
+export async function getAllIndex(tableName: string): Promise<NodeDoc[]> {
+	try {
+		const db = await lancedb.connect(dbPath);
+		const table = await db.openTable(tableName);
+		const docs: NodeDoc[] = (
+			await table.query()
+				.where(`type = '${DOC_TYPE.INDEX}'`)
+				.toArray()
+		).map((item) => ({ ...item, vector: [...item.vector] }))
+		return docs
+	} catch (error) {
+		console.error("Error retrieving all index:", error);
+		return [];
+	}
+}
+
 
 
 

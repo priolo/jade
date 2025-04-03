@@ -2,6 +2,7 @@ import { google } from '@ai-sdk/google';
 import { CoreMessage, generateText, tool, ToolSet } from "ai"
 import { z } from "zod"
 import dotenv from 'dotenv';
+import { colorPrint, ColorType } from '../utils.js';
 dotenv.config();
 
 
@@ -23,6 +24,7 @@ export interface Response {
 
 export interface AgentOptions {
 	descriptionPrompt?: string
+	systemPrompt?: string
 	tools?: ToolSet
 	agents?: Agent[]
 }
@@ -36,26 +38,40 @@ export interface AgentOptions {
  */
 class Agent {
 	constructor(
-		public name: string, 
-		//options:AgentOptions?
-
-		public descriptionPrompt: string = "",
-		tools: ToolSet = {},
-		agents: Agent[] = [],
+		public name: string,
+		options: AgentOptions,
 	) {
+		const defaultOptions = this.getOptions() ?? {}
+		options = {
+			descriptionPrompt: options.descriptionPrompt ?? defaultOptions.descriptionPrompt,
+			systemPrompt: options.systemPrompt ?? defaultOptions.systemPrompt,
+			tools: { ...defaultOptions.tools ?? {}, ...options.tools ?? {} },
+			agents: [...defaultOptions.agents ?? [], ...options.agents ?? []],
+		}
+
 		this.model = google('gemini-2.0-flash')
-		this.subagents = agents
-		this.subagentTools = this.createSubAgentsTools(agents)
 		this.history = [{ role: "user", content: reactTaskPrompt }]
-		this.tools = tools ?? {}
+
+		this.subagents = options.agents
+		this.subagentTools = this.createSubAgentsTools(options.agents)
+		this.tools = options.tools ?? {}
+
+		/** per descrivere l'agent nel tool */
+		this.descriptionPrompt = options.descriptionPrompt
+		this.systemPompt = options.systemPrompt
 	}
 
-	private history: CoreMessage[] = []
+	public parent: Agent | null = null
+
 	private model = null
-	private tools: ToolSet = {}
+	private history: CoreMessage[] = []
+
 	private subagents: Agent[] = []
 	private subagentTools: ToolSet = {}
-	public parent: Agent | null = null
+	private tools: ToolSet = {}
+
+	private descriptionPrompt: string = ""
+	protected systemPompt: string = ""
 
 	private createSubAgentsTools(agents: Agent[]) {
 		if (!agents) return {}
@@ -70,6 +86,7 @@ class Agent {
 				}),
 				execute: async ({ prompt }) => {
 					console.log(`${this.name}:chat_with:${agent.name}:${prompt}`)
+					colorPrint([[this.name, ColorType.Blue], `${this.name}:chat_with:${agent.name}:${prompt}`])
 					const response = await agent.ask(prompt)
 					if (response.type == RESPONSE_TYPE.REQUEST) {
 						return `${agent.name} asks: ${response.text}`
@@ -89,6 +106,8 @@ class Agent {
 
 		const tools = { ...this.tools, ...this.subagentTools, ...systemTool }
 		this.history.push({ role: "user", content: prompt })
+		const systemPrompt = `${reactSystemPrompt ?? ""} 
+${this.systemPompt ?? ""}`
 
 		// LOOP
 		for (let i = 0; i < 50; i++) {
@@ -97,7 +116,7 @@ class Agent {
 			const r = await generateText({
 				model: this.model,
 				temperature: 0,
-				system: reactSystemPrompt,
+				system: systemPrompt,
 				messages: this.history,
 				//toolChoice: !this.parent? "auto": "required",
 				//toolChoice: this.history.length > 2 && !!this.parent ? "auto" : "required",
@@ -137,7 +156,7 @@ class Agent {
 
 				// CONTINUE RAESONING
 				if (!functionName.startsWith("chat_with_")) {
-					console.log(`${this.name}:function:${functionName}:`, this.history[this.history.length - 2].content[1].args)
+					console.log(`${this.name}:function:${functionName}:`, this.history[this.history.length - 2]?.content[1]?.["args"])
 					console.log(result)
 				}
 
@@ -151,6 +170,7 @@ class Agent {
 				})
 			}
 
+			await new Promise(resolve => setTimeout(resolve, 5000)) // wait 1 second
 		}
 
 		console.log(this.name, ":falure")
@@ -164,6 +184,15 @@ class Agent {
 	kill() {
 		this.history = []
 		console.log(`${this.name}:killed`)
+	}
+
+	protected getOptions(): AgentOptions {
+		return {
+			descriptionPrompt: "",
+			systemPrompt: "",
+			tools: {},
+			agents: []
+		}
 	}
 }
 
