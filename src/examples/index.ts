@@ -5,32 +5,26 @@ import Agent from "../llm/Agent.js";
 import { chat } from "./chat.js";
 import { importHTMLToText, importPDFToText, normalizeString, storeInDb, storeTextInDb } from "./storeInDB.js";
 import { queryDBChapter } from "./queryDB.js";
-import { deleteRecordsByRefSubstring, getAllByRefSubstring, vectorDBSearch, wordDBSearch } from "./utils/db.js";
+import { deleteRecordsByRefSubstring, getAllByRefSubstring, vectorDBSearch, word2DBSearch, wordDBSearch } from "./utils/db.js";
 import { split } from "../tools/cutter/fix.js";
 import { getEmbedding } from "../tools/embedding/embedding.js";
 import * as lancedb from "@lancedb/lancedb";
+import { DOC_TYPE } from "../types.js";
 
 
 
 
 
+// #region QUERY
 
-
-//queryDBChapter("Latte+", "kb_pizza", "Essenza dell Infinito")
-//queryDBChapter("Latte+", "kb_pizza")
-//queryDBChapter("Ravioli al Vaporeon", "kb_pizza")
-//queryDBChapter("Chocobo Wings", "kb_pizza")
-//queryDBChapter("Latte+", "kb_pizza")
-
-// vectorDBSearch("cosa mi sai dire della fermentazione quantica", "kb_pizza_menu", 10/*, ["codice galattico"]*/).then((results) => {
+// vectorDBSearch("la gravitazione si intreccia con cosa?", "kb_pizza_menu", 10/*, ["codice galattico"]*/).then((results) => {
 // 	console.log(results)
 // })
 
-//getAllByRefSubstring("dell Infinito", "kb_pizza")
-
-// wordDBSearch("Magnetica", "kb_pizza_menu").then((results) => {
+// wordDBSearch("Impasto Gravitazionali", "kb_pizza_menu", null, DOC_TYPE.PARAGRAPH).then((results) => {
 // 	console.log(results)
 // })
+
 // getAllByRefSubstring("datapizza", "kb_pizza_menu").then((results) => {
 // 	console.log(results)
 // })
@@ -45,8 +39,10 @@ import * as lancedb from "@lancedb/lancedb";
 // }
 // runCreateIndex()
 
+// #endregion QUERY
 
 
+// #region IMPORT
 
 const pdfPaths = [
 	"Anima Cosmica",
@@ -114,6 +110,7 @@ async function importBlogs() {
 //importCode()
 //importBlogs()
 
+// #endregion IMPORT
 
 
 chat()

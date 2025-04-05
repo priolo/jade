@@ -55,8 +55,8 @@ class Agent {
 			clearOnResponse: options.clearOnResponse ?? defaultOptions.clearOnResponse,
 		}
 
-		//this.model = google('gemini-2.0-flash')
-		this.model = mistral('mistral-large-latest')
+		this.model = google('gemini-2.0-flash')
+		//this.model = mistral('mistral-large-latest')
 
 		this.subagents = options.agents
 		this.subagentTools = this.createSubAgentsTools(options.agents)

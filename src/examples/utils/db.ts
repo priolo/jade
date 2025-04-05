@@ -45,11 +45,15 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 }
 
 
-export async function vectorDBSearch(text: string, tableName: string, limit: number, type?:DOC_TYPE, refs?: string[]): Promise<NodeDoc[]> {
+export async function vectorDBSearch(text: string, tableName: string, limit: number, type?: DOC_TYPE, refs?: string[]): Promise<NodeDoc[]> {
 	const db = await lancedb.connect(dbPath);
 	const table = await db.openTable(tableName);
 	const vector = await getEmbedding(text);
-	const searchQuery = (table.search(vector) as lancedb.VectorQuery)//.distanceType("cosine")
+	//const searchQuery = (table.search(vector) as lancedb.VectorQuery)//.distanceType("cosine")
+	const searchQuery = table.query()
+		.nearestToText(text, ["text"])
+		.nearestTo(vector)
+
 	if (!!refs && refs.length > 0) {
 		const whereClause = refs.map(r => `ref LIKE '%${r}%'`).join(" OR ")
 		searchQuery.where(whereClause)
@@ -62,27 +66,37 @@ export async function vectorDBSearch(text: string, tableName: string, limit: num
 }
 
 
-export async function wordDBSearch(word: string, tableName: string, limit:number = 50, type?:DOC_TYPE): Promise<NodeDoc[]> {
+export async function wordDBSearch(word: string, tableName: string, limit: number = 10, type?: DOC_TYPE): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath)
 		const table = await db.openTable(tableName)
-		
 		const searchQuery = table.query()
-		if (!!type) searchQuery.where(`type = '${type}'`)
-		const docs: NodeDoc[] = (await searchQuery
-			.nearestToText(word, ["text"])
+		
+		let sql = `LOWER(text) LIKE LOWER('%${word}%')`
+		if (!!type) sql += ` AND type = '${type}'`
+		const likeDocs = (await searchQuery
+			.where(sql)
 			//.limit(limit)
 			.toArray())
 			.map((item) => ({ ...item, vector: [...item.vector] }))
 
-		// const docs: NodeDoc[] = (
-		// 	await table.query()
-		// 		.fullTextSearch(word, { columns: "text"})
-		// 		//.where(`LOWER(text) LIKE LOWER('%${word}%')`)
-		// 		.toArray()
-		// ).map((item) => ({...item, vector: [...item.vector]}))
+		let queryNear =  searchQuery.nearestToText(word, ["text"])
+		if ( !!type ) queryNear.where(`type = '${type}'`)
+		const nearestDocs: NodeDoc[] = []
+	// (await queryNear
+	// 		//.fullTextSearch(word, { columns: "text"})
+	// 		//.limit(limit)
+	// 		.toArray())
+	// 		.map((item) => ({ ...item, vector: [...item.vector] }))
 
-		return docs
+		// Filter out duplicates from nearestDocs based on UUID
+		const docs = [...likeDocs, ...nearestDocs].reduce((acc, doc) => {
+			if (acc[doc.uuid]) return acc;
+			acc[doc.uuid] = doc;
+			return acc;
+		}, {})
+		return Object.values(docs)//.slice(0, limit)
+
 	} catch (error) {
 		console.error("Error: ", error);
 		return [];
@@ -90,7 +104,7 @@ export async function wordDBSearch(word: string, tableName: string, limit:number
 }
 
 
-export async function getAllIndex(tableName: string, refs?:string[]): Promise<NodeDoc[]> {
+export async function getAllIndex(tableName: string, refs?: string[]): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath);
 		const table = await db.openTable(tableName);
@@ -100,10 +114,35 @@ export async function getAllIndex(tableName: string, refs?:string[]): Promise<No
 			searchQuery.where(whereClause)
 		}
 		const docs: NodeDoc[] = (await searchQuery.where(`type = '${DOC_TYPE.INDEX}'`).toArray())
-			.map((item) => ({ ...item, vector: [...item.vector] }))	
+			.map((item) => ({ ...item, vector: [...item.vector] }))
 		return docs
 	} catch (error) {
 		console.error("Error retrieving all index:", error);
+		return [];
+	}
+}
+
+
+
+
+export async function word2DBSearch(word: string, tableName: string, limit: number = 50, type?: DOC_TYPE): Promise<NodeDoc[]> {
+	try {
+		const db = await lancedb.connect(dbPath)
+		const table = await db.openTable(tableName)
+
+		const searchQuery = table.query()
+		if (!!type) searchQuery.where(`type = '${type}'`)
+		const docs: NodeDoc[] = (await searchQuery
+			//.fullTextSearch(word, { columns: "text"})
+			.where(`LOWER(text) LIKE LOWER('%${word}%')`)
+			//.nearestToText(word, ["text"])
+			//.limit(limit)
+			.toArray())
+			.map((item) => ({ ...item, vector: [...item.vector] }))
+
+		return docs
+	} catch (error) {
+		console.error("Error: ", error);
 		return [];
 	}
 }

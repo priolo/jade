@@ -1,8 +1,7 @@
 import { tool, Tool, ToolExecutionOptions, ToolSet } from 'ai';
 import { z } from "zod";
-import { queryDBChapter } from '../examples/queryDB.js';
-import { DOC_TYPE, NodeDoc } from '../types.js';
 import { getAllIndex, getItemById, vectorDBSearch, wordDBSearch } from '../examples/utils/db.js';
+import { DOC_TYPE, NodeDoc } from '../types.js';
 import Agent, { AgentOptions } from './Agent.js';
 
 
@@ -26,42 +25,7 @@ class AgentFinder extends Agent {
 	refs: string[] = []
 	tableName: string
 
-	// 	async build(): Promise<void> {
-
-
-	// 		const docs = await getAllIndex(this.tableName)
-	// 		if (docs.length == 0) return
-
-	// 		const recordsIndex = docs.map(doc => {
-	// 			const title = doc.ref
-	// 			const records = doc.text.split("\n").reduce((acc, line) => {
-	// 				if (!line || (line = line.trim()).length == 0) return acc
-	// 				return `${acc} - ${line}\n`
-	// 			}, "")
-	// 			return `### ${title}:\n${records}`
-	// 		})
-
-	// 		const indexPrompt = `
-	// ---
-	// Also keep in mind that your database includes the following topics:
-	// ${recordsIndex.join("")}
-	// `
-	// 		//this.descriptionPrompt += indexPrompt
-	// 		//this.systemPompt += indexPrompt
-	// 		this.indexPropt = indexPrompt
-
-	// 		// console.log("descriptionPrompt: ", this.descriptionPrompt)
-	// 		// console.log("systemPompt: ", this.systemPompt)
-	// 	}
-
 	protected getOptions(): AgentFinderOptions {
-
-		// const tools = { search_chapter, search_block_of_text, search_single_word, get_specific_chapter }
-		// Object.entries(tools).forEach(([name, tool]) => {
-		// 	const fn = tool.execute as any
-		// 	tool.execute = (arg, options) => fn(arg, options, this)
-		// })
-
 		return {
 			descriptionPrompt: "",
 			systemPrompt: `Per avere informazioni devi usare i tool:
@@ -73,20 +37,22 @@ class AgentFinder extends Agent {
 Una buona strategia potrebbe essere:
 1. Se vuoi avere una lista degli argomenti conosciuti 
 allora puoi usare "get_all_index" per avere un indice generico delle fonti e dei loro capitoli.
-2. Se vuoi informazioni e la "query" è una frase generica, una domanda o una descrizione 
+2. Se vuoi informazioni attrverso una domanda, descrizione o frase generica che restituisca "blocchi di testo" semanticamente simili
 allora usa il tool "search_block_of_text" per cercare "blocchi di testo" semanticamente simili alla "query" e per avere informazioni utili.
-3. Se vuoi informazioni e hai una parola o frase precisa (come per esempio un nome) 
+3. In alcuni casi è utile cercare direttamente una parola o frase precisa per ricavare i "blocchi di testo" che la contengono (come per esempio un nome, un soggetto, un argomento, un concetto, etc) 
 allora usa il tool "search_single_word" per recuperare i "blocchi di testo". 
 4. Se vuoi informazioni più ampie su un "blocco di testo" e conosci #ID_CHAPTER da dove è stato estratto
 allora puoi usare "get_specific_chapter" per avere l'intero "capitolo" cioè un contesto più ampio dove cercre informazioni utili.
-5. Se vuoi informazioni e non hai trovato informazioni utili 
+5. Se vuoi informazioni e vuoi una risposta con un contesto più ampio attraverso una domanda, frase, descrizione 
 allora puoi usare "search_chapter" per avere un contesto piu' ampio.
 6. Usa la stessa linguaggio del tuo interlocutore.
 `,
 			tools: this.getTools(),
 		}
 	}
-
+	// 2. Se vuoi informazioni e la "query" è una frase generica, una domanda o una descrizione 
+	// allora usa il tool "search_block_of_text" per cercare "blocchi di testo" semanticamente simili alla "query" e per avere informazioni utili.
+	
 	getTools(): ToolSet {
 
 		const search_chapter: Tool = tool({
