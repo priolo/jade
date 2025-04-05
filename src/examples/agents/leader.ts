@@ -16,15 +16,12 @@ export async function buildLeadAgent() {
 	const leaderAgent = new Agent(
 		"LEADER",
 		<AgentOptions>{
-			descriptionPrompt: "Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.",
-			systemPrompt: `
-Se ti servono informazioni specifiche o non sai rispondere alla domanda usa chat_with per poter chiedere ai tuoi sotto agenti e ricevere informazioni utili.
-- chat_with_MENU ti permette di chiedere informazioni sui: menu, i piatti e gli ingredienti, i ristoranti e i loro chef.
-- chat_with_CODICE ti permette di chiedere informazioni sul Codice Galattico: licenze, definizioni, ingredienti, regolamenti, norme, leggi, abitudini, etc etc.
-- chat_with_MANUALE ti permette di chiedere informazioni sul manuale di cucina di Sirius Cosmo (licenze, ricette, abilità, livelli, procedimenti con vantaggi e svantaggi, etc etc).
+			descriptionPrompt: `Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.
+Se uno dei tuoi agenti non ti da una risposta utile prova a chiedere ad un altro agente.
 `,
+			//systemPrompt: ``,
+			noAskForInformation: true,
 			agents: [codiceAgent, manualeAgent, menuAgent],
-
 			tools: {
 
 				"get_locations_list": tool({

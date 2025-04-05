@@ -32,6 +32,8 @@ export interface AgentOptions {
 	agents?: Agent[]
 	/** distruggi history quando ha risposto */
 	clearOnResponse?: boolean
+	/** non chiedere al parent */
+	noAskForInformation?: boolean
 }
 
 
@@ -53,32 +55,35 @@ class Agent {
 			tools: { ...defaultOptions.tools ?? {}, ...options.tools ?? {} },
 			agents: [...defaultOptions.agents ?? [], ...options.agents ?? []],
 			clearOnResponse: options.clearOnResponse ?? defaultOptions.clearOnResponse,
+			noAskForInformation: options.noAskForInformation ?? defaultOptions.noAskForInformation,
 		}
 
 		this.model = google('gemini-2.0-flash')
 		//this.model = mistral('mistral-large-latest')
 
-		this.subagents = options.agents
 		this.subagentTools = this.createSubAgentsTools(options.agents)
-		this.tools = options.tools ?? {}
 
+		this.subagents = options.agents
+		this.tools = options.tools ?? {}
 		this.descriptionPrompt = options.descriptionPrompt
 		this.systemPompt = options.systemPrompt
 		this.clearOnResponse = options.clearOnResponse ?? false
+		this.options = options
+
 	}
 
 	public parent: Agent | null = null
-
 	private model = null
 	private history: CoreMessage[] = []
+	private subagentTools: ToolSet = {}
 
 	private subagents: Agent[] = []
-	private subagentTools: ToolSet = {}
 	private tools: ToolSet = {}
-	private clearOnResponse: boolean = false
-
 	protected descriptionPrompt: string = ""
 	protected systemPompt: string = ""
+	private clearOnResponse: boolean = false
+
+	protected options: AgentOptions = {}
 
 	private createSubAgentsTools(agents: Agent[]) {
 		if (!agents) return {}
@@ -111,19 +116,16 @@ class Agent {
 	async build() { }
 
 	async ask(prompt: string): Promise<Response> {
-
-		const tools = { ...this.tools, ...this.subagentTools, ...systemTool }
+		const systemTools = this.getSystemTools()
+		const tools = { ...this.tools, ...this.subagentTools, ...systemTools }
+		const reactSystemPrompt = this.getReactSystemPrompt()
 		const systemPrompt = `${reactSystemPrompt ?? ""}\n${this.systemPompt ?? ""}`
 
 		// inserisco un prompt di initializzazione per l'AGENT
 		if (this.history.length == 0) {
 			this.history = [{ role: "user", content: reactTaskPrompt }]
 		}
-
-		this.history.push({
-			role: "user",
-			content: `${prompt}`
-		})
+		this.history.push({ role: "user", content: `${prompt}` })
 
 		// LOOP
 		for (let i = 0; i < 50; i++) {
@@ -198,7 +200,7 @@ class Agent {
 		}
 	}
 
-	// [II] chiamato quando il task del parent è finito
+	/** elimina la history */
 	kill() {
 		this.history = []
 		colorPrint(this.name, ColorType.Blue, " : ", ["killed", ColorType.Red])
@@ -213,6 +215,57 @@ class Agent {
 			clearOnResponse: false,
 		}
 	}
+
+	/** System instructions for ReAct agent  */
+	protected getReactSystemPrompt(): string {
+		const roles = [
+			`Thought: Analyze the problem and think about how to solve it.`,
+			`Action: Choose an action from the available ${toolDef2}.`,
+			`Observation: Get the result of the ${toolDef} and use it to process the answer`,
+			`Request information: If you really can't get information from others ${toolDef2} call "ask_for_information" ${toolDef} to ask for more information.`,
+			`Repeat steps 1-4 until you can provide a final answer (6)`,
+			`When ready, use the "final_answer" ${toolDef} to provide your solution.`,
+		]
+		if (this.options.noAskForInformation) roles.splice(3, 1)
+		return `You are a ReAct agent that solves problems by thinking step by step.
+Follow this process:
+${roles.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+
+Always be explicit in your reasoning. Break down complex problems into steps.
+`;
+
+	}
+
+	protected getSystemTools(): ToolSet {
+
+		const tools = {
+			final_answer: tool({
+				description: "Provide the final answer to the problem",
+				parameters: z.object({
+					answer: z.string().describe("The complete, final answer to the problem"),
+				}),
+				execute: async ({ answer }) => {
+					return answer
+				}
+			}),
+
+			ask_for_information: tool({
+				description: `
+You can use this procedure if you don't have enough information from the user.
+For example: 
+User: "give me the temperature where I am now". You: "where are you now?", User: "I am in Paris"
+`,
+				parameters: z.object({
+					request: z.string().describe("The question to ask to get useful information.")
+				}),
+				execute: async ({ request }) => {
+					return request
+				}
+			})
+		}
+		if ( !!this.options.noAskForInformation ) delete tools.ask_for_information
+		return tools
+	}
 }
 
 export default Agent
@@ -220,52 +273,10 @@ export default Agent
 const toolDef = "tool" // "function"
 const toolDef2 = "tools" // "functions"
 
-// System instructions for ReAct agent
-const reactSystemPrompt = `
-You are a ReAct agent that solves problems by thinking step by step.
-Follow this process:
-1. Thought: Analyze the problem and think about how to solve it
-2. Action: Choose an action from the available ${toolDef2}
-3. Observation: Get the result of the ${toolDef} and use it to process the answer
-4. Request information: If you really can't get information from others ${toolDef2} call "ask_for_information" ${toolDef} to ask for more information
-5. Repeat steps 1-4 until you can provide a final answer (6)
-6. When ready, use the "final_answer" ${toolDef} to provide your solution
-
-Always be explicit in your reasoning. Break down complex problems into steps.
-`;
 //2.1 Do not call the same ${toolDef} multiple times with the same parameters to avoid loops
 
 // Task instruction template
 const reactTaskPrompt = `
 Please solve the following problem using reasoning and the available ${toolDef2}:
 `;
-
-const systemTool = {
-
-	final_answer: tool({
-		description: "Provide the final answer to the problem",
-		parameters: z.object({
-			answer: z.string().describe("The complete, final answer to the problem"),
-		}),
-		execute: async ({ answer }) => {
-			return answer
-		}
-	}),
-
-	ask_for_information: tool({
-		description: `
-You can use this procedure if you don't have enough information from the user.
-For example: 
-User: "give me the temperature where I am now". You: "where are you now?", User: "I am in Paris"
-`,
-		parameters: z.object({
-			request: z.string().describe("The question to ask to get useful information.")
-		}),
-		execute: async ({ request }) => {
-			return request
-		}
-	})
-}
-
-
 

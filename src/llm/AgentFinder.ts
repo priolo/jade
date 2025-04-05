@@ -28,15 +28,17 @@ class AgentFinder extends Agent {
 	protected getOptions(): AgentFinderOptions {
 		return {
 			descriptionPrompt: "",
-			systemPrompt: `Per avere informazioni devi usare i tool:
+			systemPrompt: `
+## TOOL A DISPOSIZIONE:
+Per avere informazioni devi usare i tool:
 - "search_block_of_text": per cercare un "blocco di testo" specifico che compone un "capitolo".
 - "search_single_word": per cercare un "blocco di testo" che contiene esattamente la singola parola o frase.
 - "search_chapter": per cercare un "capitolo" che contiene informazioni generali su un argomento.
 - "get_specific_chapter": per cercare un capitolo specifico attraverso il suo ID.
 
-Una buona strategia potrebbe essere:
+## Una buona strategia potrebbe essere:
 1. Se vuoi avere una lista degli argomenti conosciuti 
-allora puoi usare "get_all_index" per avere un indice generico delle fonti e dei loro capitoli.
+allora puoi usare "get_all_index" per avere un indice generico di tutti i "documenti" e dei loro capitoli.
 2. Se vuoi informazioni attrverso una domanda, descrizione o frase generica che restituisca "blocchi di testo" semanticamente simili
 allora usa il tool "search_block_of_text" per cercare "blocchi di testo" semanticamente simili alla "query" e per avere informazioni utili.
 3. In alcuni casi è utile cercare direttamente una parola o frase precisa per ricavare i "blocchi di testo" che la contengono (come per esempio un nome, un soggetto, un argomento, un concetto, etc) 
@@ -46,6 +48,13 @@ allora puoi usare "get_specific_chapter" per avere l'intero "capitolo" cioè un 
 5. Se vuoi informazioni e vuoi una risposta con un contesto più ampio attraverso una domanda, frase, descrizione 
 allora puoi usare "search_chapter" per avere un contesto piu' ampio.
 6. Usa la stessa linguaggio del tuo interlocutore.
+
+## Tieni conto che:
+1. Un "capitolo" è un testo abbastanza lungo che riguarda un argomento.
+2. Un "capitolo" è composto da più "blocchi di testo".
+3. Un "blocco di testo" è un testo breve di circa 300 lettere.
+4. Più "capitoli" formano un "documento".
+5. Le ricerce restituiscono risultati semanticamente simili per cui va valutato il significato del testo.
 `,
 			tools: this.getTools(),
 		}
@@ -65,7 +74,7 @@ I "capitoli" sono composti da "blocchi di testo".
 			}),
 			execute: async ({ query }) => {
 				//const results: NodeDoc[] = (await queryDBChapter(query, "kb_pizza")).slice(0, 3)
-				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.CHAPTER, this.refs)
+				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 5, DOC_TYPE.CHAPTER, this.refs)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
