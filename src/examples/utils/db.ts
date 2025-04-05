@@ -38,7 +38,6 @@ export async function vectorDBCreateAndStore(nodes: NodeDoc[], tableName: string
 		await table.createIndex("text", {
 			config: lancedb.Index.fts(),
 		});
-
 	}
 
 	// ADD ITEMS
@@ -50,7 +49,7 @@ export async function vectorDBSearch(text: string, tableName: string, limit: num
 	const db = await lancedb.connect(dbPath);
 	const table = await db.openTable(tableName);
 	const vector = await getEmbedding(text);
-	const searchQuery = (table.search(vector) as lancedb.VectorQuery).distanceType("cosine")
+	const searchQuery = (table.search(vector) as lancedb.VectorQuery)//.distanceType("cosine")
 	if (!!refs && refs.length > 0) {
 		const whereClause = refs.map(r => `ref LIKE '%${r}%'`).join(" OR ")
 		searchQuery.where(whereClause)
@@ -63,20 +62,23 @@ export async function vectorDBSearch(text: string, tableName: string, limit: num
 }
 
 
-export async function wordDBSearch(word: string, tableName: string, limit:number = 50): Promise<NodeDoc[]> {
+export async function wordDBSearch(word: string, tableName: string, limit:number = 50, type?:DOC_TYPE): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath)
 		const table = await db.openTable(tableName)
-
-		const docs: NodeDoc[] = (await table.query()
+		
+		const searchQuery = table.query()
+		if (!!type) searchQuery.where(`type = '${type}'`)
+		const docs: NodeDoc[] = (await searchQuery
 			.nearestToText(word, ["text"])
-			.limit(limit)
-			.toArray()).map((item) => ({ ...item, vector: [...item.vector] }))
+			//.limit(limit)
+			.toArray())
+			.map((item) => ({ ...item, vector: [...item.vector] }))
 
 		// const docs: NodeDoc[] = (
 		// 	await table.query()
-		// 		//.fullTextSearch(word, { columns: "text"})
-		// 		.where(`LOWER(text) LIKE LOWER('%${word}%')`)
+		// 		.fullTextSearch(word, { columns: "text"})
+		// 		//.where(`LOWER(text) LIKE LOWER('%${word}%')`)
 		// 		.toArray()
 		// ).map((item) => ({...item, vector: [...item.vector]}))
 
@@ -88,15 +90,17 @@ export async function wordDBSearch(word: string, tableName: string, limit:number
 }
 
 
-export async function getAllIndex(tableName: string): Promise<NodeDoc[]> {
+export async function getAllIndex(tableName: string, refs?:string[]): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath);
 		const table = await db.openTable(tableName);
-		const docs: NodeDoc[] = (
-			await table.query()
-				.where(`type = '${DOC_TYPE.INDEX}'`)
-				.toArray()
-		).map((item) => ({ ...item, vector: [...item.vector] }))
+		const searchQuery = table.query()
+		if (!!refs && refs.length > 0) {
+			const whereClause = refs.map(r => `ref LIKE '%${r}%'`).join(" OR ")
+			searchQuery.where(whereClause)
+		}
+		const docs: NodeDoc[] = (await searchQuery.where(`type = '${DOC_TYPE.INDEX}'`).toArray())
+			.map((item) => ({ ...item, vector: [...item.vector] }))	
 		return docs
 	} catch (error) {
 		console.error("Error retrieving all index:", error);
@@ -159,17 +163,16 @@ export async function getAllByRefSubstring(ref: string, tableName: string): Prom
 	try {
 		const db = await lancedb.connect(dbPath);
 		const table = await db.openTable(tableName);
+		// await table.createIndex("text", {
+		// 	config: lancedb.Index.fts(),
+		// });
 		const docs: NodeDoc[] = (
 			await table.query()
+				//.fullTextSearch("manipolare", { columns: "text"})
+				.nearestToText("manipolare", ["text"])
 				.where(`LOWER(ref) LIKE LOWER('%${ref}%')`)
 				.toArray()
-		).map((item) => ({
-			uuid: item.uuid,
-			parent: item.parent,
-			text: item.text,
-			ref: item.ref,
-			vector: item.vector.toArray(),
-		}))
+		).map((item) => ({ ...item, vector: [...item.vector] }))
 		return docs
 	} catch (error) {
 		console.error("Error retrieving all uuids:", error);

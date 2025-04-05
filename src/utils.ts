@@ -15,7 +15,7 @@ export enum ColorType {
 /**
  * Prints colored text to the console
  */
-export function colorPrint(messages: Array<Array<string> | string>): void {
+export function colorPrint(...messages: Array<string | [string, ColorType]>): void {
 	let output = '';
 	for (const message of messages) {
 		if (typeof message == "string") {

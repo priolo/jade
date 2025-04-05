@@ -1,5 +1,5 @@
 import { tool } from "ai"
-import Agent from "../../llm/Agent.js"
+import Agent, { AgentOptions } from "../../llm/Agent.js"
 import { buildCodiceAgent } from "./codice.js"
 import { buildManualeAgent } from "./manuale.js"
 import { buildMenuAgent } from "./menu.js"
@@ -7,32 +7,41 @@ import { z } from "zod"
 
 
 
-export function buildLeadAgent() {
+export async function buildLeadAgent() {
 
-	const codiceAgent = buildCodiceAgent()
-	const manualeAgent = buildManualeAgent()
-	const menuAgent = buildMenuAgent()
+	const codiceAgent = await buildCodiceAgent()
+	const manualeAgent = await buildManualeAgent()
+	const menuAgent = await buildMenuAgent()
 
 	const leaderAgent = new Agent(
 		"LEADER",
-		{
-			descriptionPrompt: "Sei un Agente che risponde a domande su un mondo immaginario fantascientifico.",
+		<AgentOptions>{
+			descriptionPrompt: "Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.",
 			systemPrompt: `
 Se ti servono informazioni specifiche o non sai rispondere alla domanda usa chat_with per poter chiedere ai tuoi sotto agenti e ricevere informazioni utili.
-- chat_with CODICE ti permette di chiedere informazioni sul Codice Galattico (licenze, definizioni, ingredienti, regolamenti, norme, leggi, abitudini, etc etc).
-- chat_with MENU ti permette di chiedere informazioni sul menu dei ristoranti (piatti, preparazioni etc etc).
-- chat_with MANUALE ti permette di chiedere informazioni sul manuale di cucina di  Sirius Cosmo (licenze, ricette, abilità, livelli, procedimenti con vantaggi e svantaggi, etc etc).
+- chat_with_MENU ti permette di chiedere informazioni sui menu e sui ristoranti e sui loro chef (piatti, preparazioni etc etc).
+- chat_with_CODICE ti permette di chiedere informazioni sul Codice Galattico (licenze, definizioni, ingredienti, regolamenti, norme, leggi, abitudini, etc etc).
+- chat_with_MANUALE ti permette di chiedere informazioni sul manuale di cucina di Sirius Cosmo (licenze, ricette, abilità, livelli, procedimenti con vantaggi e svantaggi, etc etc).
 `,
 			agents: [codiceAgent, manualeAgent, menuAgent],
+
 			tools: {
-				"get_distance": tool({
-					description: "Restituisce la distanza tra due popolazioni o culture spaziali",
+
+				"get_locations_list": tool({
+					description: "Restituisce una lista di luoghi o popolazioni o pianeti di un universo immaginario",
+					parameters: z.object({}),
+					execute: async () => {
+						return Locations.join(", ");
+					}
+				}),
+
+				"get_locations_distance": tool({
+					description: "Restituisce la distanza tra due locazioni o popolazioni o pianeti spaziali in anni luce",
 					parameters: z.object({
 						partenza: z.string().describe("Il nome della popolazione o cultura spaziale di partenza"),
 						destinazione: z.string().describe("Il nome della popolazione o cultura spaziale di destinazione"),
 					}),
 					execute: async ({ partenza, destinazione }) => {
-						const destinations = ["Tatooine", "Asgard", "Namecc", "Arrakis", "Krypton", "Pandora", "Cybertron", "Ego", "Montressosr", "Klyntar"]
 						const distances = [
 							[0, 695, 641, 109, 661, 1130, 344, 835, 731, 530],
 							[695, 0, 550, 781, 188, 473, 493, 156, 240, 479],
@@ -45,13 +54,13 @@ Se ti servono informazioni specifiche o non sai rispondere alla domanda usa chat
 							[731, 240, 767, 834, 422, 413, 434, 215, 0, 331],
 							[530, 479, 845, 640, 599, 731, 186, 532, 331, 0],
 						]
-						const indexPartenza = destinations.indexOf(partenza)	
-						const indexDestinazione = destinations.indexOf(destinazione)
+						const indexPartenza = Locations.indexOf(partenza)	
+						const indexDestinazione = Locations.indexOf(destinazione)
 						if (indexPartenza === -1 || indexDestinazione === -1) {
 							return `Non conosco la distanza tra ${partenza} e ${destinazione}`
 						}
 						const distance = distances[indexPartenza][indexDestinazione]
-						return `La distanza tra ${partenza} e ${destinazione} è di ${distance}.`
+						return `La distanza tra ${partenza} e ${destinazione} è di ${distance} anni luce.`
 					}
 				}),
 			}
@@ -59,3 +68,5 @@ Se ti servono informazioni specifiche o non sai rispondere alla domanda usa chat
 	)
 	return leaderAgent
 }
+
+const Locations = ["Tatooine", "Asgard", "Namecc", "Arrakis", "Krypton", "Pandora", "Cybertron", "Ego", "Montressosr", "Klyntar"]

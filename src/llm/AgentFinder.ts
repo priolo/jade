@@ -8,7 +8,7 @@ import Agent, { AgentOptions } from './Agent.js';
 
 
 interface AgentFinderOptions extends AgentOptions {
-	docs?: string[]
+	refs?: string[]
 	tableName?: string
 }
 
@@ -19,20 +19,40 @@ class AgentFinder extends Agent {
 		options: AgentFinderOptions,
 	) {
 		super(name, options)
-		this.docs = options.docs ?? []
+		this.refs = options.refs ?? []
 		this.tableName = options.tableName ?? "kb_pizza"
-
-		// estraggo tutti i doc INDEX
-		getAllIndex(this.tableName).then((docs) => {
-			if (docs.length == 0) return
-			const indexPrompt = `I am aware of the following topics:\n`+docs.map(doc => `- ${doc.text}`).join("\n")
-			this.systemPompt += indexPrompt
-		})
-		
 	}
 
-	docs: string[] = []
+	refs: string[] = []
 	tableName: string
+
+	// 	async build(): Promise<void> {
+
+
+	// 		const docs = await getAllIndex(this.tableName)
+	// 		if (docs.length == 0) return
+
+	// 		const recordsIndex = docs.map(doc => {
+	// 			const title = doc.ref
+	// 			const records = doc.text.split("\n").reduce((acc, line) => {
+	// 				if (!line || (line = line.trim()).length == 0) return acc
+	// 				return `${acc} - ${line}\n`
+	// 			}, "")
+	// 			return `### ${title}:\n${records}`
+	// 		})
+
+	// 		const indexPrompt = `
+	// ---
+	// Also keep in mind that your database includes the following topics:
+	// ${recordsIndex.join("")}
+	// `
+	// 		//this.descriptionPrompt += indexPrompt
+	// 		//this.systemPompt += indexPrompt
+	// 		this.indexPropt = indexPrompt
+
+	// 		// console.log("descriptionPrompt: ", this.descriptionPrompt)
+	// 		// console.log("systemPompt: ", this.systemPompt)
+	// 	}
 
 	protected getOptions(): AgentFinderOptions {
 
@@ -44,21 +64,23 @@ class AgentFinder extends Agent {
 
 		return {
 			descriptionPrompt: "",
-			systemPrompt: 
-`Per avere informazioni devi usare i tool:
+			systemPrompt: `Per avere informazioni devi usare i tool:
 - "search_block_of_text": per cercare un "blocco di testo" specifico che compone un "capitolo".
 - "search_single_word": per cercare un "blocco di testo" che contiene esattamente la singola parola o frase.
 - "search_chapter": per cercare un "capitolo" che contiene informazioni generali su un argomento.
 - "get_specific_chapter": per cercare un capitolo specifico attraverso il suo ID.
+
 Una buona strategia potrebbe essere:
-1. Se la "query" è una frase generica, una domanda o una descrizione 
+1. Se vuoi avere una lista degli argomenti conosciuti 
+allora puoi usare "get_all_index" per avere un indice generico delle fonti e dei loro capitoli.
+2. Se vuoi informazioni e la "query" è una frase generica, una domanda o una descrizione 
 allora usa il tool "search_block_of_text" per cercare "blocchi di testo" semanticamente simili alla "query" e per avere informazioni utili.
-2. Se hai una parola o frase precisa (come per esempio un nome) 
+3. Se vuoi informazioni e hai una parola o frase precisa (come per esempio un nome) 
 allora usa il tool "search_single_word" per recuperare i "blocchi di testo". 
-3. Se non hai trovato informazioni utili 
+4. Se vuoi informazioni più ampie su un "blocco di testo" e conosci #ID_CHAPTER da dove è stato estratto
+allora puoi usare "get_specific_chapter" per avere l'intero "capitolo" cioè un contesto più ampio dove cercre informazioni utili.
+5. Se vuoi informazioni e non hai trovato informazioni utili 
 allora puoi usare "search_chapter" per avere un contesto piu' ampio.
-5. Se conosci #ID_CHAPTER 
-allora puoi usare "get_specific_chapter" per avere un intero "capitolo" cioè un contesto più ampio dove cercre informazioni utili.
 6. Usa la stessa linguaggio del tuo interlocutore.
 `,
 			tools: this.getTools(),
@@ -68,8 +90,7 @@ allora puoi usare "get_specific_chapter" per avere un intero "capitolo" cioè un
 	getTools(): ToolSet {
 
 		const search_chapter: Tool = tool({
-			description: 
-`Attraverso la frase di "query" recupera dei "capitoli" 
+			description: `Attraverso la frase di "query" recupera dei "capitoli" 
 I "capitoli" sono un testo abbastanza lungo che riguarda un argomento. 
 I "capitoli" sono composti da "blocchi di testo".
 `,
@@ -78,7 +99,7 @@ I "capitoli" sono composti da "blocchi di testo".
 			}),
 			execute: async ({ query }) => {
 				//const results: NodeDoc[] = (await queryDBChapter(query, "kb_pizza")).slice(0, 3)
-				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.CHAPTER, this.docs)
+				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.CHAPTER, this.refs)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
@@ -89,15 +110,14 @@ I "capitoli" sono composti da "blocchi di testo".
 		})
 
 		const search_block_of_text: Tool = tool({
-			description: 
-`Attraverso la frase di "query" recupera un breve "blocco di testo".
+			description: `Attraverso la frase di "query" recupera un breve "blocco di testo".
 Da sapere: i "blocchi di testo" compongono un "capitolo".
 `,
 			parameters: z.object({
 				query: z.string().describe("Il testo che permette la ricerca di informazioni per similitudine su un vector db"),
 			}),
 			execute: async ({ query }, options: ToolExecutionOptions) => {
-				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.PARAGRAPH, this.docs)
+				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.PARAGRAPH, this.refs)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
@@ -108,15 +128,14 @@ Da sapere: i "blocchi di testo" compongono un "capitolo".
 		})
 
 		const search_single_word: Tool = tool({
-			description: 
-`Cerca puntualmente una singola parola o una frase 
+			description: `Cerca puntualmente una singola parola o una frase 
 e restituisce il "blocco di testo" che la contiene.
 `,
 			parameters: z.object({
 				query: z.string().describe("Il testo da cercare su tutti i 'blocchi di testo'"),
 			}),
 			execute: async ({ query }) => {
-				const results: NodeDoc[] = await wordDBSearch(query, "kb_pizza", 20)
+				const results: NodeDoc[] = await wordDBSearch(query, this.tableName, 20, DOC_TYPE.PARAGRAPH)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
@@ -127,20 +146,37 @@ e restituisce il "blocco di testo" che la contiene.
 		})
 
 		const get_specific_chapter: Tool = tool({
-			description: 
-`Restituisce uno specifico capitolo cercando il suo ID.
-`,
+			description: `Restituisce uno specifico capitolo cercando il suo ID.`,
 			parameters: z.object({
 				id: z.string().describe("l'id di tipo uuid del capitolo"),
 			}),
 			execute: async ({ id }) => {
-				const result: NodeDoc = await getItemById(id, "kb_pizza")
+				const result: NodeDoc = await getItemById(id, this.tableName)
 				if (!result) return "Nessun risultato"
 				return nodeToString(result)
 			}
 		})
 
-		return { search_chapter, search_block_of_text, search_single_word, get_specific_chapter }
+		const get_all_index: Tool = tool({
+			description:
+				`Restituisce una lista dei documenti memorizzati e, per ogni documento, un indice dei titoli dei capitoli.`,
+			parameters: z.object({}),
+			execute: async () => {
+				const docs = await getAllIndex(this.tableName)
+				if (docs.length == 0) return
+				const recordsIndex = docs.map(doc => {
+					const title = doc.ref
+					const records = doc.text.split("\n").reduce((acc, line) => {
+						if (!line || (line = line.trim()).length == 0) return acc
+						return `${acc} - ${line}\n`
+					}, "")
+					return `### ${title}:\n${records}`
+				})
+				return recordsIndex.join("")
+			}
+		})
+
+		return { search_chapter, search_block_of_text, search_single_word, get_specific_chapter, get_all_index }
 	}
 }
 

@@ -5,7 +5,7 @@ import { buildLeadAgent } from "./agents/leader.js";
 
 export async function chat() {
 
-	const leadAgent = buildLeadAgent()
+	const leadAgent = await buildLeadAgent()
 	const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 	while (true) {
@@ -15,7 +15,6 @@ export async function chat() {
 			break;
 		}
 		const response = await leadAgent.ask(prompt)
-		console.log(response)
 	}
 }
 

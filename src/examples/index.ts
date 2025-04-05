@@ -22,15 +22,28 @@ import * as lancedb from "@lancedb/lancedb";
 //queryDBChapter("Chocobo Wings", "kb_pizza")
 //queryDBChapter("Latte+", "kb_pizza")
 
-// vectorDBSearch("cosa mi sai dire della fermentazione quantica", TableName, 10/*, ["codice galattico"]*/).then((results) => {
+// vectorDBSearch("cosa mi sai dire della fermentazione quantica", "kb_pizza_menu", 10/*, ["codice galattico"]*/).then((results) => {
 // 	console.log(results)
 // })
 
 //getAllByRefSubstring("dell Infinito", "kb_pizza")
 
-// wordDBSearch("Chocobo Wings", TableName).then((results) => {
+// wordDBSearch("Magnetica", "kb_pizza_menu").then((results) => {
 // 	console.log(results)
 // })
+// getAllByRefSubstring("datapizza", "kb_pizza_menu").then((results) => {
+// 	console.log(results)
+// })
+
+// async function runCreateIndex() {
+// 	const db = await lancedb.connect("./vectorsDB/lancedb")
+// 	const table = await db.openTable("kb_pizza_menu")
+// 	await table.createIndex("text", {
+// 		config: lancedb.Index.fts(),
+// 	})
+// 	db.close()
+// }
+// runCreateIndex()
 
 
 
@@ -76,13 +89,14 @@ async function importHTML(relativePath: string, tableName: string) {
 	let text = await importHTMLToText(relativePath)
 	await storeTextInDb(text, tableName, relativePath)
 }
+
 async function importMenu() {
 	for (const pdfPath of pdfPaths) {
 		await importPDF(`../../data/pizza/Menu/${pdfPath}.pdf`, "kb_pizza_menu")
 		await new Promise(resolve => setTimeout(resolve, 10000)) // Delay to avoid rate limit
 	}
-	importPDF("../../data/pizza/Misc/L Essenza delle Dune.pdf", "kb_pizza_menu", true)
-	importPDF("../../data/pizza/Misc/Datapizza.pdf", "kb_pizza_menu", true)
+	importPDF("../../data/pizza/Menu/L Essenza delle Dune.pdf", "kb_pizza_menu", true)
+	importPDF("../../data/pizza/Menu/Datapizza.pdf", "kb_pizza_menu", true)
 }
 async function importManual() {
 	importPDF("../../data/pizza/Misc/Manuale di Cucina.pdf", "kb_pizza_manual", true)
@@ -95,14 +109,14 @@ async function importBlogs() {
 	await importHTML("../../data/pizza/Blogpost/blog_sapore_del_dune.html", "kb_pizza_blog")
 }
 
-
 //importMenu()
-importManual()
+//importManual()
+//importCode()
+//importBlogs()
 
 
 
-
-//chat()
+chat()
 
 
 
