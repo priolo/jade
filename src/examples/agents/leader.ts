@@ -16,8 +16,8 @@ export async function buildLeadAgent() {
 	const leaderAgent = new Agent(
 		"LEADER",
 		<AgentOptions>{
-			descriptionPrompt: `Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.
-Se uno dei tuoi agenti non ti da una risposta utile prova a chiedere ad un altro agente.
+			systemPrompt: `Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.
+La risposta finale "final_answer" è in italiano.
 `,
 			//systemPrompt: ``,
 			noAskForInformation: true,
@@ -25,7 +25,7 @@ Se uno dei tuoi agenti non ti da una risposta utile prova a chiedere ad un altro
 			tools: {
 
 				"get_locations_list": tool({
-					description: "Restituisce una lista di luoghi o popolazioni o pianeti di un universo immaginario",
+					description: "Restituisce una lista di ritoranti di un universo immaginario",
 					parameters: z.object({}),
 					execute: async () => {
 						return Locations.join(", ");
@@ -33,10 +33,10 @@ Se uno dei tuoi agenti non ti da una risposta utile prova a chiedere ad un altro
 				}),
 
 				"get_locations_distance": tool({
-					description: "Restituisce la distanza tra due locazioni o popolazioni o pianeti spaziali in anni luce",
+					description: "Restituisce la distanza tra due ristoranti in anni luce",
 					parameters: z.object({
-						partenza: z.string().describe("Il nome della popolazione o cultura spaziale di partenza"),
-						destinazione: z.string().describe("Il nome della popolazione o cultura spaziale di destinazione"),
+						partenza: z.string().describe("Il nome del ristorante partenza"),
+						destinazione: z.string().describe("Il nome del ristorante destinazione"),
 					}),
 					execute: async ({ partenza, destinazione }) => {
 						const distances = [

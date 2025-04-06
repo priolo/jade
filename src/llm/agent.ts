@@ -25,7 +25,7 @@ export interface Response {
 
 export interface AgentOptions {
 	/** per descrivere l'AGENT nel tool */
-	descriptionPrompt?: string
+	description?: string
 	/** in aggiunta al system prompt ReAct */
 	systemPrompt?: string
 	tools?: ToolSet
@@ -58,8 +58,8 @@ class Agent {
 			agents: [...defaultOptions.agents ?? [], ...options.agents ?? []],
 		}
 
-		//this.model = google('gemini-2.0-flash')
-		this.model = mistral('mistral-large-latest')
+		this.model = google('gemini-2.0-flash')
+		//this.model = mistral('mistral-large-latest')
 		this.subagentTools = this.createSubAgentsTools(options.agents)
 	}
 
@@ -76,7 +76,7 @@ class Agent {
 			agent.parent = this
 
 			acc[`chat_with_${agent.name}`] = tool({
-				description: agent.options.descriptionPrompt,
+				description: agent.options.description,
 				parameters: z.object({
 					prompt: z.string().describe("The question to ask the agent"),
 				}),
@@ -104,13 +104,12 @@ class Agent {
 		const tools = { ...this.options.tools, ...this.subagentTools, ...systemTools }
 		const reactSystemPrompt = this.getReactSystemPrompt()
 		let systemPrompt = `${reactSystemPrompt ?? ""}\n${this.options.systemPrompt ?? ""}`
-		if ( !this.parent) systemPrompt += `\n${this.options.descriptionPrompt ?? ""}`
 
 		// inserisco un prompt di initializzazione per l'AGENT
 		if (this.history.length == 0) {
-			this.history = [{ 
-				role: "user", 
-				content: `Please solve the following problem using reasoning and the available ${toolDef2}:` 
+			this.history = [{
+				role: "user",
+				content: `Please solve the following problem using reasoning and the available tools:`
 			}]
 		}
 		this.history.push({ role: "user", content: `${prompt}` })
@@ -118,10 +117,10 @@ class Agent {
 		// LOOP
 		for (let i = 0; i < this.options.maxCycles; i++) {
 
-			if ( i == this.options.maxCycles - 3) {
-				this.history.push({ 
-					role: "assistant", 
-					content: "You need to find an answer quickly because your time is running out." 
+			if (i == this.options.maxCycles - 3) {
+				this.history.push({
+					role: "assistant",
+					content: "You need to find an answer quickly because your time is running out."
 				})
 			}
 
@@ -133,7 +132,7 @@ class Agent {
 				messages: this.history,
 				//toolChoice: !this.parent? "auto": "required",
 				//toolChoice: this.history.length > 2 && !!this.parent ? "auto" : "required",
-				toolChoice: "required",
+				toolChoice: "auto",// "required",
 				tools,
 				maxSteps: 1,
 			})
@@ -176,12 +175,7 @@ class Agent {
 
 				// CONTINUE RAESONING
 			} else {
-				colorPrint([this.name, ColorType.Blue], " : reasoning: ", [JSON.stringify(lastMessage.content), ColorType.Magenta])
-
-				this.history.push({
-					role: "assistant",
-					content: "Please continue reasoning and use the provided functions to solve the task."
-				})
+				colorPrint([this.name, ColorType.Blue], " : reasoning : ", [JSON.stringify(lastMessage.content), ColorType.Magenta])
 			}
 
 			await new Promise(resolve => setTimeout(resolve, 3000)) // wait 1 second
@@ -203,7 +197,7 @@ class Agent {
 
 	protected getOptions(): AgentOptions {
 		return {
-			descriptionPrompt: "",
+			description: "",
 			systemPrompt: "",
 			tools: {},
 			agents: [],
@@ -214,23 +208,47 @@ class Agent {
 
 	/** System instructions for ReAct agent  */
 	protected getReactSystemPrompt(): string {
-		const roles = [
-			`Thought: Analyze the problem and think about how to solve it.`,
-			`Action: Choose an action from the available ${toolDef2}.`,
-			`Observation: Get the result of the ${toolDef} and use it to process the answer`,
-			`Request information: If you really can't get information from others ${toolDef2} call "ask_for_information" ${toolDef} to ask for more information.`,
-			`Repeat steps 1-4 until you can provide a final answer`,
-			`When ready, use the "final_answer" ${toolDef} to provide your solution.`,
-		]
-		if (this.options.noAskForInformation) roles.splice(3, 1)
-		if (!!this.parent) roles.push(`If you don't get a response from your tool agent try calling another tool agent before giving up.`)
-		return `You are a ReAct agent that solves problems by thinking step by step.
-Follow this process:
-${roles.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+		const rules = []
+
+		rules.push(`Thought: Analyze the step problem and think about how to solve it.`)
+
+		rules.push(`Action: Choose an action from the available tools or call another agent using the tool "chat_with_<agent_name>"`)
+
+		// pre osservation
+		if (!this.options.noAskForInformation) rules.push(`Request information: If you really can't get information from others tools call "ask_for_information" tools to ask for more information.`)
+
+		// observation
+		rules.push(`Observation: Get the result of the tool and use it to process the answer`)
+
+		// update strategy
+		rules.push(`Update the strategy:
+If you have completed the step examined, move on to the next one.
+If you have not succeeded, try updating the strategy list by returning to the previous steps`)
+
+		// post osservation
+		rules.push(`Repeat rules 1-${rules.length} until you can provide a final answer`)
+
+		// conclusion
+		rules.push(`When ready, use the "final_answer" tool to provide your solution.`)
+
+
+		
+		const process = `# You are a ReAct agent that solves problems by thinking step by step.
+## Strategy:
+- keep the focus on the main problem and the tools at your disposal
+- break the main problem into smaller problems (steps)
+- create a list of steps to follow
+- each step is independent from the following ones
+- each step could be dependent on the previous ones
+
+## Follow this rules:
+${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 
 Always be explicit in your reasoning. Break down complex problems into steps.
 `;
 
+
+		return process
 	}
 
 	protected getSystemTools(): ToolSet {
@@ -260,15 +278,11 @@ User: "give me the temperature where I am now". You: "where are you now?", User:
 				}
 			})
 		}
-		if ( !!this.options.noAskForInformation ) delete tools.ask_for_information
+		if (!!this.options.noAskForInformation) delete tools.ask_for_information
 		return tools
 	}
 }
 
 export default Agent
 
-const toolDef = "tool" // "function"
-const toolDef2 = "tools" // "functions"
-
-//2.1 Do not call the same ${toolDef} multiple times with the same parameters to avoid loops
 
