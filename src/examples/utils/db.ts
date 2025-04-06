@@ -66,7 +66,7 @@ export async function vectorDBSearch(text: string, tableName: string, limit: num
 }
 
 
-export async function wordDBSearch(word: string, tableName: string, limit: number = 10, type?: DOC_TYPE): Promise<NodeDoc[]> {
+export async function wordDBSearch(word: string, tableName: string, limit: number = 100, type?: DOC_TYPE): Promise<NodeDoc[]> {
 	try {
 		const db = await lancedb.connect(dbPath)
 		const table = await db.openTable(tableName)
@@ -76,7 +76,7 @@ export async function wordDBSearch(word: string, tableName: string, limit: numbe
 		if (!!type) sql += ` AND type = '${type}'`
 		const likeDocs = (await searchQuery
 			.where(sql)
-			//.limit(limit)
+			.limit(limit)
 			.toArray())
 			.map((item) => ({ ...item, vector: [...item.vector] }))
 

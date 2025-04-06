@@ -19,7 +19,6 @@ export async function buildLeadAgent() {
 			systemPrompt: `Sei un Agente che risponde a domande su un mondo immaginario fantascientifico fatto di ristoranti, ricette, chef, preparazioni, licenze, usanze, popolazioni e galassie.
 La risposta finale "final_answer" è in italiano.
 `,
-			//systemPrompt: ``,
 			noAskForInformation: true,
 			agents: [codiceAgent, manualeAgent, menuAgent],
 			tools: {
@@ -60,7 +59,7 @@ La risposta finale "final_answer" è in italiano.
 						return `La distanza tra ${partenza} e ${destinazione} è di ${distance} anni luce.`
 					}
 				}),
-			}
+			},
 		}
 	)
 	return leaderAgent

@@ -154,7 +154,7 @@ e restituisce il "blocco di testo" che la contiene.
 				query: z.string().describe("Il testo da cercare su tutti i 'blocchi di testo'"),
 			}),
 			execute: async ({ query }) => {
-				const results: NodeDoc[] = await wordDBSearch(query, this.tableName, 20, DOC_TYPE.PARAGRAPH)
+				const results: NodeDoc[] = await wordDBSearch(query, this.tableName, 100, DOC_TYPE.PARAGRAPH)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {

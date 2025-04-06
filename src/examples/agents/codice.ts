@@ -10,6 +10,7 @@ export async function buildCodiceAgent() {
  licenze, definizioni, ingredienti, regolamenti, norme, leggi, abitudini, etc etc`,
 			tableName: "kb_pizza_code",
 			clearOnResponse: true,
+			maxCycles: 10,
 		},
 	)
 	await agent.build()

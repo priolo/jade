@@ -34,6 +34,8 @@ export interface AgentOptions {
 	clearOnResponse?: boolean
 	/** non chiedere al parent */
 	noAskForInformation?: boolean
+	/** non creare la strategia */
+	noStrategy?: boolean
 	/** numero massimo di cicli di reasoning */
 	maxCycles?: number
 }
@@ -76,7 +78,7 @@ class Agent {
 			agent.parent = this
 
 			acc[`chat_with_${agent.name}`] = tool({
-				description: agent.options.description,
+				description: `AGENT NAME: ${agent.name}. DESCRIPTION: ${agent.options.description}`,
 				parameters: z.object({
 					prompt: z.string().describe("The question to ask the agent"),
 				}),
@@ -132,7 +134,7 @@ class Agent {
 				messages: this.history,
 				//toolChoice: !this.parent? "auto": "required",
 				//toolChoice: this.history.length > 2 && !!this.parent ? "auto" : "required",
-				toolChoice: "auto",// "required",
+				toolChoice: "required",
 				tools,
 				maxSteps: 1,
 			})
@@ -166,11 +168,11 @@ class Agent {
 					}
 				}
 
-				// CONTINUE RAESONING
-				if (!functionName.startsWith("chat_with_")) {
+				// ANOTHER TOOL
+				if (functionName != "update_strategy" && !functionName.startsWith("chat_with_")) {
 					const funArgs = this.history[this.history.length - 2]?.content[1]?.["args"]
 					colorPrint([this.name, ColorType.Blue], " : function : ", [functionName, ColorType.Yellow], " : ", [JSON.stringify(funArgs), ColorType.Green])
-					console.log(result)
+					//console.log(result)
 				}
 
 				// CONTINUE RAESONING
@@ -178,7 +180,7 @@ class Agent {
 				colorPrint([this.name, ColorType.Blue], " : reasoning : ", [JSON.stringify(lastMessage.content), ColorType.Magenta])
 			}
 
-			await new Promise(resolve => setTimeout(resolve, 3000)) // wait 1 second
+			await new Promise(resolve => setTimeout(resolve, 5000)) // wait 1 second
 		}
 
 		colorPrint(this.name, ColorType.Blue, " : ", ["failure", ColorType.Red])
@@ -223,7 +225,7 @@ class Agent {
 		// update strategy
 		rules.push(`Update the strategy:
 If you have completed the step examined, move on to the next one.
-If you have not succeeded, try updating the strategy list by returning to the previous steps`)
+If you have not succeeded, try updating the strategy list by returning to the previous steps and trying again. call the tool "update_strategy"`)
 
 		// post osservation
 		rules.push(`Repeat rules 1-${rules.length} until you can provide a final answer`)
@@ -231,15 +233,13 @@ If you have not succeeded, try updating the strategy list by returning to the pr
 		// conclusion
 		rules.push(`When ready, use the "final_answer" tool to provide your solution.`)
 
-
-		
 		const process = `# You are a ReAct agent that solves problems by thinking step by step.
 ## Strategy:
-- keep the focus on the main problem and the tools at your disposal
-- break the main problem into smaller problems (steps)
-- create a list of steps to follow
-- each step is independent from the following ones
-- each step could be dependent on the previous ones
+- Keep the focus on the main problem and the tools at your disposal
+- Break the main problem into smaller problems (steps)
+- Create a list of steps to follow to solve the main problem call the tool "update_strategy"
+- Each step is independent from the following ones
+- Each step could be dependent on the previous ones
 
 ## Follow this rules:
 ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
@@ -265,8 +265,7 @@ Always be explicit in your reasoning. Break down complex problems into steps.
 			}),
 
 			ask_for_information: tool({
-				description: `
-You can use this procedure if you don't have enough information from the user.
+				description: `You can use this procedure if you don't have enough information from the user.
 For example: 
 User: "give me the temperature where I am now". You: "where are you now?", User: "I am in Paris"
 `,
@@ -276,7 +275,18 @@ User: "give me the temperature where I am now". You: "where are you now?", User:
 				execute: async ({ request }) => {
 					return request
 				}
-			})
+			}),
+
+			update_strategy: tool({
+				description: "Set up a strategy consisting of a list of steps to follow to solve the main problem",
+				parameters: z.object({
+					strategy: z.string().describe("the strategy divided into a list of steps"),
+				}),
+				execute: async ({ strategy }) => {
+					colorPrint([this.name, ColorType.Blue], " : update strategy", ["\n"+strategy, ColorType.Magenta])
+					return strategy
+				}
+			}),
 		}
 		if (!!this.options.noAskForInformation) delete tools.ask_for_information
 		return tools
