@@ -34,6 +34,8 @@ export interface AgentOptions {
 	clearOnResponse?: boolean
 	/** non chiedere al parent */
 	noAskForInformation?: boolean
+	/** numero massimo di cicli di reasoning */
+	maxCycles?: number
 }
 
 
@@ -49,40 +51,22 @@ class Agent {
 		options: AgentOptions,
 	) {
 		const defaultOptions = this.getOptions() ?? {}
-		options = {
-			descriptionPrompt: options.descriptionPrompt ?? defaultOptions.descriptionPrompt,
-			systemPrompt: options.systemPrompt ?? defaultOptions.systemPrompt,
+		this.options = {
+			...defaultOptions,
+			...options,
 			tools: { ...defaultOptions.tools ?? {}, ...options.tools ?? {} },
 			agents: [...defaultOptions.agents ?? [], ...options.agents ?? []],
-			clearOnResponse: options.clearOnResponse ?? defaultOptions.clearOnResponse,
-			noAskForInformation: options.noAskForInformation ?? defaultOptions.noAskForInformation,
 		}
 
-		this.model = google('gemini-2.0-flash')
-		//this.model = mistral('mistral-large-latest')
-
+		//this.model = google('gemini-2.0-flash')
+		this.model = mistral('mistral-large-latest')
 		this.subagentTools = this.createSubAgentsTools(options.agents)
-
-		this.subagents = options.agents
-		this.tools = options.tools ?? {}
-		this.descriptionPrompt = options.descriptionPrompt
-		this.systemPompt = options.systemPrompt
-		this.clearOnResponse = options.clearOnResponse ?? false
-		this.options = options
-
 	}
 
 	public parent: Agent | null = null
 	private model = null
 	private history: CoreMessage[] = []
 	private subagentTools: ToolSet = {}
-
-	private subagents: Agent[] = []
-	private tools: ToolSet = {}
-	protected descriptionPrompt: string = ""
-	protected systemPompt: string = ""
-	private clearOnResponse: boolean = false
-
 	protected options: AgentOptions = {}
 
 	private createSubAgentsTools(agents: Agent[]) {
@@ -92,7 +76,7 @@ class Agent {
 			agent.parent = this
 
 			acc[`chat_with_${agent.name}`] = tool({
-				description: agent.descriptionPrompt,
+				description: agent.options.descriptionPrompt,
 				parameters: z.object({
 					prompt: z.string().describe("The question to ask the agent"),
 				}),
@@ -117,18 +101,29 @@ class Agent {
 
 	async ask(prompt: string): Promise<Response> {
 		const systemTools = this.getSystemTools()
-		const tools = { ...this.tools, ...this.subagentTools, ...systemTools }
+		const tools = { ...this.options.tools, ...this.subagentTools, ...systemTools }
 		const reactSystemPrompt = this.getReactSystemPrompt()
-		const systemPrompt = `${reactSystemPrompt ?? ""}\n${this.systemPompt ?? ""}`
+		let systemPrompt = `${reactSystemPrompt ?? ""}\n${this.options.systemPrompt ?? ""}`
+		if ( !this.parent) systemPrompt += `\n${this.options.descriptionPrompt ?? ""}`
 
 		// inserisco un prompt di initializzazione per l'AGENT
 		if (this.history.length == 0) {
-			this.history = [{ role: "user", content: reactTaskPrompt }]
+			this.history = [{ 
+				role: "user", 
+				content: `Please solve the following problem using reasoning and the available ${toolDef2}:` 
+			}]
 		}
 		this.history.push({ role: "user", content: `${prompt}` })
 
 		// LOOP
-		for (let i = 0; i < 50; i++) {
+		for (let i = 0; i < this.options.maxCycles; i++) {
+
+			if ( i == this.options.maxCycles - 3) {
+				this.history.push({ 
+					role: "assistant", 
+					content: "You need to find an answer quickly because your time is running out." 
+				})
+			}
 
 			// THINK
 			const r = await generateText({
@@ -155,8 +150,8 @@ class Agent {
 				// FINAL RESPONSE
 				if (content.toolName == "final_answer") {
 					colorPrint([this.name, ColorType.Blue], " : final answer: ", [result, ColorType.Green])
-					this.subagents.forEach(agent => agent.kill())
-					if (this.clearOnResponse) this.kill()
+					this.options.agents.forEach(agent => agent.kill())
+					if (this.options.clearOnResponse) this.kill()
 					return <Response>{
 						text: result,
 						type: RESPONSE_TYPE.SUCCESS
@@ -193,7 +188,7 @@ class Agent {
 		}
 
 		colorPrint(this.name, ColorType.Blue, " : ", ["failure", ColorType.Red])
-		if (this.clearOnResponse) this.kill()
+		if (this.options.clearOnResponse) this.kill()
 		return {
 			text: "Couldn't reach a conclusion after maximum iterations.",
 			type: RESPONSE_TYPE.FAILURE
@@ -213,6 +208,7 @@ class Agent {
 			tools: {},
 			agents: [],
 			clearOnResponse: false,
+			maxCycles: 30,
 		}
 	}
 
@@ -223,10 +219,11 @@ class Agent {
 			`Action: Choose an action from the available ${toolDef2}.`,
 			`Observation: Get the result of the ${toolDef} and use it to process the answer`,
 			`Request information: If you really can't get information from others ${toolDef2} call "ask_for_information" ${toolDef} to ask for more information.`,
-			`Repeat steps 1-4 until you can provide a final answer (6)`,
+			`Repeat steps 1-4 until you can provide a final answer`,
 			`When ready, use the "final_answer" ${toolDef} to provide your solution.`,
 		]
 		if (this.options.noAskForInformation) roles.splice(3, 1)
+		if (!!this.parent) roles.push(`If you don't get a response from your tool agent try calling another tool agent before giving up.`)
 		return `You are a ReAct agent that solves problems by thinking step by step.
 Follow this process:
 ${roles.map((r, i) => `${i + 1}. ${r}`).join("\n")}
@@ -274,9 +271,4 @@ const toolDef = "tool" // "function"
 const toolDef2 = "tools" // "functions"
 
 //2.1 Do not call the same ${toolDef} multiple times with the same parameters to avoid loops
-
-// Task instruction template
-const reactTaskPrompt = `
-Please solve the following problem using reasoning and the available ${toolDef2}:
-`;
 

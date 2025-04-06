@@ -9,6 +9,11 @@ import Agent, { AgentOptions } from './Agent.js';
 interface AgentFinderOptions extends AgentOptions {
 	refs?: string[]
 	tableName?: string
+	/** limit su CAPTHER */
+	captherLimit?: number
+	/** limit su PARAGRAPH */
+	paragraphLimit?: number
+
 }
 
 class AgentFinder extends Agent {
@@ -27,10 +32,12 @@ class AgentFinder extends Agent {
 
 	protected getOptions(): AgentFinderOptions {
 		return {
+			...super.getOptions(),
 			descriptionPrompt: "",
 			systemPrompt: `
 ## TOOL A DISPOSIZIONE:
 Per avere informazioni devi usare i tool:
+- "get_all_index": per avere un indice generico di tutti i "documenti" e dei loro capitoli.
 - "search_block_of_text": per cercare un "blocco di testo" specifico che compone un "capitolo".
 - "search_single_word": per cercare un "blocco di testo" che contiene esattamente la singola parola o frase.
 - "search_chapter": per cercare un "capitolo" che contiene informazioni generali su un argomento.
@@ -57,11 +64,13 @@ allora puoi usare "search_chapter" per avere un contesto piu' ampio.
 5. Le ricerce restituiscono risultati semanticamente simili per cui va valutato il significato del testo.
 `,
 			tools: this.getTools(),
+			paragraphLimit: 4,
+			captherLimit: 2,
 		}
 	}
 	// 2. Se vuoi informazioni e la "query" è una frase generica, una domanda o una descrizione 
 	// allora usa il tool "search_block_of_text" per cercare "blocchi di testo" semanticamente simili alla "query" e per avere informazioni utili.
-	
+
 	getTools(): ToolSet {
 
 		const search_chapter: Tool = tool({
@@ -74,7 +83,8 @@ I "capitoli" sono composti da "blocchi di testo".
 			}),
 			execute: async ({ query }) => {
 				//const results: NodeDoc[] = (await queryDBChapter(query, "kb_pizza")).slice(0, 3)
-				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 5, DOC_TYPE.CHAPTER, this.refs)
+				const options = this.options as AgentFinderOptions
+				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, options.captherLimit, DOC_TYPE.CHAPTER, this.refs)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
@@ -91,8 +101,9 @@ Da sapere: i "blocchi di testo" compongono un "capitolo".
 			parameters: z.object({
 				query: z.string().describe("Il testo che permette la ricerca di informazioni per similitudine su un vector db"),
 			}),
-			execute: async ({ query }, options: ToolExecutionOptions) => {
-				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, 10, DOC_TYPE.PARAGRAPH, this.refs)
+			execute: async ({ query }) => {
+				const options = this.options as AgentFinderOptions
+				const results: NodeDoc[] = await vectorDBSearch(query, this.tableName, options.paragraphLimit, DOC_TYPE.PARAGRAPH, this.refs)
 				if (results.length == 0) return "Nessun risultato"
 				let response = ""
 				for (const result of results) {
